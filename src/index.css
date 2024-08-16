@@ -1,0 +1,129 @@
+:root {
+    --terminal-color: #63dd58;
+    --terminal-bg-color: #071405;
+}
+
+body {
+    overflow: hidden;
+    font-family: "VecTerminus16", monospace;
+    font-size: 12pt;
+    color: var(--terminal-color);
+    user-select: none;
+
+    margin: 0;
+
+    animation: animation-boot 2s ease-out forwards;
+}
+
+@keyframes animation-boot {
+    from {
+        background-color: #000;
+    } to {
+        background-color: var(--terminal-bg-color);
+    }
+}
+
+button, input, select {
+    font-family: "VecTerminus16", monospace;
+    font-size: 12pt;
+}
+
+.tz-sh-screen-fx {
+    z-index: -2;
+    width: 100%;
+    height: 100vh;
+    position: absolute;
+
+    background-image: url("./assets/images/screenscan.svg");
+    opacity: 10%;
+
+    animation: anim-screen-fx 10s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes anim-screen-fx {
+    from {
+        background-position-y: 720px;
+    } to {
+        background-position-y: 0;
+    }
+}
+
+.tz-sh-window {
+    border: 1px solid var(--terminal-color);
+    color: var(--terminal-color);
+    position: absolute;
+
+    width: 640px;
+    height: 360px;
+    
+    display: flex;
+    flex-direction: column;
+
+    box-shadow: 0 0 12px var(--terminal-color);
+}
+
+.tz-sh-input {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    border: 1px solid var(--terminal-color);
+    outline: none;
+    width: 250px;
+    background-color: var(--terminal-bg-color);
+    color: var(--terminal-color);
+    padding: 4px;
+
+    resize: both;
+    overflow: auto;
+}
+
+.tz-sh-terminal {
+    height: 100%;
+    display: flex;
+    overflow-y: scroll;
+    flex-direction: column;
+}
+
+.tz-sh-terminal-header {
+    opacity: 0;
+    display: flex;
+    background-color: var(--terminal-bg-color);
+    padding: 2px 8px 0 8px; gap: 4;
+    border-bottom: 1px solid var(--terminal-color);
+}
+
+.tz-sh-view {
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    background-color: var(--terminal-bg-color);
+    overflow: hidden;
+}
+
+::-webkit-scrollbar {
+    background-color: transparent;
+    border-left: 1px solid var(--terminal-color);
+    
+    width: 12pt;
+}
+
+::-webkit-scrollbar-button {
+    color: var(--terminal-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--terminal-color);
+    color: black;
+}
+
+::-webkit-scrollbar-button {
+    display: none;
+}
+
+::selection {
+    background-color: var(--terminal-color);
+    color: #000;
+}
