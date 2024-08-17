@@ -22,10 +22,10 @@ export default function Root() {
 					return [...oldWindows, {
 						id: "window-terminal",
 						title: "Terminal",
-						initialX: window.innerWidth / 2 - (16 * 45 / 2),
-						initialY: window.innerHeight / 2 - (16 * 20 / 2),
-						initialWidth: 16 * 45,
-						initialHeight: 16 * 20,
+						initialX: window.innerWidth / 2 - (16 * 50 / 2),
+						initialY: window.innerHeight / 2 - (16 * 30 / 2),
+						initialWidth: 16 * 50,
+						initialHeight: 16 * 30,
 						view: <Terminal />
 					}];
 				});
