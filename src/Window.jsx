@@ -11,6 +11,7 @@ export default function Window({
 	title = "Abstract Window",
 	initialWidth = 640, initialHeight = 360,
 	initialX = 100, initialY = 100,
+	closeable = true,
 	view, id
 }) {
 	/**
@@ -153,7 +154,7 @@ export default function Window({
 			className="tz-sh-terminal-header">
 			<span>{title}</span>
 			<span style={{ flex: 1 }}></span>
-			<span onClick={() => closeApp(id)}>&#215;</span>
+			{ closeable && <span onClick={() => closeApp(id)}>&#215;</span>}
 		</div>
 		<div ref={viewRef} className="tz-sh-view">
 			{ view }
