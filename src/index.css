@@ -21,6 +21,12 @@
     font-weight: 100;
 }
 
+@font-face {
+    font-family: Unifont;
+    src: url("./assets/fonts/Unifont.otf");
+    font-weight: 100;
+}
+
 body {
     overflow: hidden;
     font-family: Terminus, monospace;
@@ -53,7 +59,7 @@ button, input, select {
     position: absolute;
 
     background-image: url("./assets/images/scanline.svg");
-    opacity: 10%;
+    mix-blend-mode: color-dodge;
 
     animation: anim-screen-fx 10s linear infinite;
     pointer-events: none;
@@ -61,7 +67,7 @@ button, input, select {
 
 @keyframes anim-screen-fx {
     from {
-        background-position-y: 720px;
+        background-position-y: 1300px;
     } to {
         background-position-y: 0;
     }
