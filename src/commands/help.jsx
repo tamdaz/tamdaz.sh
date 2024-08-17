@@ -10,6 +10,7 @@ export const displayHelp = () => {
         <span>historyc     --&gt; Nettoie l'historique des commandes.</span>
         <span>exit         --&gt; Ferme le terminal.</span>
         <span>help         --&gt; Affiche la commande d'aide.</span>
+        <span>version      --&gt; Affiche la version du projet.</span>
         <span>&gt;&gt; Autres commandes :</span>
         <span>color        --&gt; Change de couleur.</span>
         <span>brightness   --&gt; Modifie la luminosité de l'écran.</span>
