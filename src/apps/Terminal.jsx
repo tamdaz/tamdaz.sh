@@ -11,6 +11,7 @@ import beep_error from "./../assets/sounds/beep_error.wav";
 import { displayHelp } from "../commands/help";
 import { changeColor, displayHelpColor } from "../commands/color";
 import { changeBrightness, displayHelpBrightness } from "../commands/brightness";
+import { changeFont, displayHelpFont } from "../commands/font";
 
 export default function Terminal() {
     /** @type {{ current: HTMLDivElement }} terminalRef */
@@ -52,10 +53,6 @@ export default function Terminal() {
                 }
             },
             "clear": () => setOutput([]),
-            "historyc": () => {
-                setHistory([])
-                setOutput(oldOutput => [...oldOutput, <span>Historique des commandes effacés.</span>]);
-            },
             "color": () => {
                 if (!isNaN(args[0]) && args[0] >= 0 && args[0] <= 9) {
                     const colorId = parseInt(args[0]);
@@ -81,7 +78,18 @@ export default function Terminal() {
                 });
             },
             "exit": () => setWindows(oldWindows => oldWindows.filter(oldWindow => oldWindow.id !== "window-terminal")),
+            "font": () => {
+                if (!args[0]) {
+                    setOutput(oldOutput => [...oldOutput, displayHelpFont()]);
+                } else {
+                    changeFont(args[0], setOutput);
+                }
+            },
             "help": () => setOutput(oldOutput => [...oldOutput, displayHelp()]),
+            "historyc": () => {
+                setHistory([])
+                setOutput(oldOutput => [...oldOutput, <span>Historique des commandes effacés.</span>]);
+            },
             "portfolio": async () => {
                 window.open("https://tamdaz.fr", "_blank");
 
