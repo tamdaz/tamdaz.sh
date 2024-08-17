@@ -3,9 +3,27 @@
     --terminal-bg-color: #071405;
 }
 
+@font-face {
+    font-family: Tamzen;
+    src: url("./assets/fonts/Tamzen.ttf");
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: Spleen;
+    src: url("./assets/fonts/Spleen.otf");
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: Terminus;
+    src: url("./assets/fonts/Terminus.otf");
+    font-weight: 100;
+}
+
 body {
     overflow: hidden;
-    font-family: "VecTerminus16", monospace;
+    font-family: Terminus, monospace;
     font-size: 12pt;
     color: var(--terminal-color);
     user-select: none;
@@ -59,8 +77,6 @@ button, input, select {
     
     display: flex;
     flex-direction: column;
-
-    box-shadow: 0 0 12px var(--terminal-color);
 }
 
 .tz-sh-input {
@@ -93,6 +109,8 @@ button, input, select {
     background-color: var(--terminal-bg-color);
     padding: 2px 8px 0 8px; gap: 4;
     border-bottom: 1px solid var(--terminal-color);
+
+    min-height: 19.33px;
 }
 
 .tz-sh-view {
