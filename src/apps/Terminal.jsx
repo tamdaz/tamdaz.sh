@@ -17,7 +17,7 @@ export default function Terminal() {
     const terminalRef = React.useRef(null);
 
     const [output, setOutput] = React.useState([]);
-    
+
     const [history, setHistory] = React.useState([]);
     const historyRef = React.useRef(history);
 
@@ -30,10 +30,10 @@ export default function Terminal() {
             "": () => null,
             "aboutme": () => {
                 setWindows((oldWindows) => {
-					if (oldWindows.some(window => window.id === "window-about-me"))
-						return oldWindows;
+                    if (oldWindows.some(window => window.id === "window-about-me"))
+                        return oldWindows;
 
-					return [...oldWindows, {
+                    return [...oldWindows, {
                         id: "window-about-me",
                         title: "A propos de moi",
                         initialX: window.innerWidth - (16 * 30) - 100,
@@ -42,7 +42,7 @@ export default function Terminal() {
                         initialHeight: 16 * 5,
                         view: <AboutMe />
                     }];
-				});
+                });
             },
             "brightness": () => {
                 if (!isNaN(args[0])) {
@@ -66,10 +66,10 @@ export default function Terminal() {
             },
             "credits": () => {
                 setWindows((oldWindows) => {
-					if (oldWindows.some(window => window.id === "window-credits"))
-						return oldWindows;
+                    if (oldWindows.some(window => window.id === "window-credits"))
+                        return oldWindows;
 
-					return [...oldWindows, {
+                    return [...oldWindows, {
                         id: "window-credits",
                         title: "Crédits / Mentions légales",
                         initialX: window.innerWidth / 2 - (16 * 30) / 2,
@@ -78,16 +78,16 @@ export default function Terminal() {
                         initialHeight: 16 * 5,
                         view: <Credits />
                     }];
-				});
+                });
             },
             "exit": () => setWindows(oldWindows => oldWindows.filter(oldWindow => oldWindow.id !== "window-terminal")),
             "help": () => setOutput(oldOutput => [...oldOutput, displayHelp()]),
             "portfolio": async () => {
                 window.open("https://tamdaz.fr", "_blank");
-                
+
                 await awaitSleep(1000);
 
-                setOutput(oldOutput => [...oldOutput, <span>Accès au site portfolio: https://tamdaz.fr.</span>]);                
+                setOutput(oldOutput => [...oldOutput, <span>Accès au site portfolio: https://tamdaz.fr.</span>]);
             },
             "version": () => {
                 setOutput(oldOutput => [...oldOutput, <span>&copy; tamdaz.sh version 0.0.1, tous droits réservés</span>]);
@@ -102,23 +102,34 @@ export default function Terminal() {
     const handleInput = (e) => {
         if (historyRef.current.length !== 0) {
             if (e.key === "ArrowUp") {
-                if (indexRef.current < historyRef.current.length - 1) {
+                if (indexRef.current + 1 < historyRef.current.length) {
                     indexRef.current += 1;
+
+                    e.target.innerText = historyRef.current[indexRef.current];
                 }
 
-                e.target.innerText = historyRef.current[indexRef.current];
+                /**
+                 * Allows to move the cursor to the end.
+                 * The `setTimeout()` function is applied because it allows to take a little time
+                 * to the navigator to execute those instructions below.
+                 * Without this function, the cursor cannot move to the end, it's strange.
+                 */
+                setTimeout(() => {
+                    let sel = window.getSelection();
+                    sel.selectAllChildren(e.target);
+                    sel.collapseToEnd();
+                });
             }
-    
+
             if (e.key === "ArrowDown") {
-                // -1 in this condition allows to make input blank and type a command, like in bash.
                 if (indexRef.current > -1) {
                     indexRef.current -= 1;
                 }
 
-                if (indexRef.current === -1) {
-                    e.target.innerText = "";
-                } else {
+                if (indexRef.current !== -1) {
                     e.target.innerText = historyRef.current[indexRef.current];
+                } else {
+                    e.target.innerText = "";
                 }
             }
         }
@@ -133,16 +144,16 @@ export default function Terminal() {
 
             const command = args[0];
             const argv = Array.from(args); // immuable array
-            
+
             argv.shift();
 
             executeCommand(command, argv);
 
             if (input !== "" && input !== "historyc") {
-                setHistory(oldHistory => [...oldHistory, input]);
+                setHistory(oldHistory => [input, ...oldHistory]);
             }
-            
-            indexRef.current = 0;
+
+            indexRef.current = -1;
             createShell();
         }
     }
@@ -150,7 +161,7 @@ export default function Terminal() {
     const createShell = () => {
         const shellOutput = <div style={{ display: "flex", flexDirection: "row" }}>
             <span>user@tamdaz.sh:~$&nbsp;</span>
-            <span contentEditable={true} style={{ width: "100%", outline: "none" }} autoFocus onKeyDown={handleInput}></span>
+            <span contentEditable={true} style={{ width: "100%", outline: "none" }} onKeyDown={handleInput}></span>
         </div>
 
         setOutput(oldOutput => [...oldOutput, shellOutput]);
@@ -171,7 +182,7 @@ export default function Terminal() {
     const focusInput = () => {
         if (output.length === 1) {
             const shell = terminalRef.current.lastChild.lastChild;
-            
+
             if (shell.getAttribute("contenteditable") === "false") {
                 shell.setAttribute("contenteditable", "true");
                 shell.innerText = null;
