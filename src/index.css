@@ -52,7 +52,7 @@ button, input, select {
     height: 100vh;
     position: absolute;
 
-    background-image: url("./assets/images/screenscan.svg");
+    background-image: url("./assets/images/scanline.svg");
     opacity: 10%;
 
     animation: anim-screen-fx 10s linear infinite;
