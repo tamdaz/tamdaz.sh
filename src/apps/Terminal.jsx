@@ -1,19 +1,27 @@
 import React from "react";
+import awaitSleep from "await-sleep";
 
 import AboutMe from "./AboutMe";
 import Credits from "./Credits";
+
 import { WindowContext } from "../Root";
+
+import beep_error from "./../assets/sounds/beep_error.wav";
 
 import { displayHelp } from "../commands/help";
 import { changeColor, displayHelpColor } from "../commands/color";
-
-import beep_error from "./../assets/sounds/beep_error.wav";
+import { changeBrightness, displayHelpBrightness } from "../commands/brightness";
 
 export default function Terminal() {
     /** @type {{ current: HTMLDivElement }} terminalRef */
     const terminalRef = React.useRef(null);
 
     const [output, setOutput] = React.useState([]);
+    
+    const [history, setHistory] = React.useState([]);
+    const historyRef = React.useRef(history);
+
+    const indexRef = React.useRef(0);
 
     const { windows, setWindows } = React.useContext(WindowContext);
 
@@ -21,18 +29,32 @@ export default function Terminal() {
         const availableCommands = {
             "": () => null,
             "aboutme": () => {
-                setWindows((oldWindows) => [...oldWindows, {
-                    id: "window-about-me",
-                    title: "A propos de moi",
-                    initialX: window.innerWidth - (16 * 30) - 100,
-                    initialY: 100,
-                    initialWidth: 16 * 30,
-                    initialHeight: 16 * 5,
-                    view: <AboutMe />
-                }])
+                setWindows((oldWindows) => {
+					if (oldWindows.some(window => window.id === "window-about-me"))
+						return oldWindows;
+
+					return [...oldWindows, {
+                        id: "window-about-me",
+                        title: "A propos de moi",
+                        initialX: window.innerWidth - (16 * 30) - 100,
+                        initialY: 100,
+                        initialWidth: 16 * 30,
+                        initialHeight: 16 * 5,
+                        view: <AboutMe />
+                    }];
+				});
             },
-            "clear": () => {
-                setOutput([]);
+            "brightness": () => {
+                if (!isNaN(args[0])) {
+                    changeBrightness(args[0], setOutput);
+                } else {
+                    setOutput(oldOutput => [...oldOutput, displayHelpBrightness()]);
+                }
+            },
+            "clear": () => setOutput([]),
+            "historyc": () => {
+                setHistory([])
+                setOutput(oldOutput => [...oldOutput, <span>Historique des commandes effacés.</span>]);
             },
             "color": () => {
                 if (!isNaN(args[0]) && args[0] >= 0 && args[0] <= 9) {
@@ -43,57 +65,84 @@ export default function Terminal() {
                 }
             },
             "credits": () => {
-                setWindows((oldWindows) => [...oldWindows, {
-                    id: "window-credits",
-                    title: "Crédits / Mentions légales",
-                    initialX: window.innerWidth / 2 - (16 * 30) / 2,
-                    initialY: window.innerHeight - (16 * 5) - 100,
-                    initialWidth: 16 * 30,
-                    initialHeight: 16 * 5,
-                    view: <Credits />
-                }])
+                setWindows((oldWindows) => {
+					if (oldWindows.some(window => window.id === "window-credits"))
+						return oldWindows;
+
+					return [...oldWindows, {
+                        id: "window-credits",
+                        title: "Crédits / Mentions légales",
+                        initialX: window.innerWidth / 2 - (16 * 30) / 2,
+                        initialY: window.innerHeight - (16 * 5) - 100,
+                        initialWidth: 16 * 30,
+                        initialHeight: 16 * 5,
+                        view: <Credits />
+                    }];
+				});
             },
-            "exit": () => {
-                setWindows(windows.filter(window => window.id !== "window-terminal"))
-            },
-            "help": () => {
-                setOutput(oldOutput => [...oldOutput, displayHelp()])
-            },
-            "portfolio": () => {
-                setOutput(oldOutput => [...oldOutput, <span>Accès au site portfolio: https://tamdaz.fr.</span>]);
+            "exit": () => setWindows(oldWindows => oldWindows.filter(oldWindow => oldWindow.id !== "window-terminal")),
+            "help": () => setOutput(oldOutput => [...oldOutput, displayHelp()]),
+            "portfolio": async () => {
+                window.open("https://tamdaz.fr", "_blank");
                 
-                setTimeout(() => {
-                    window.open("https://tamdaz.fr", "_blank");
-                }, 1000);
+                await awaitSleep(1000);
+
+                setOutput(oldOutput => [...oldOutput, <span>Accès au site portfolio: https://tamdaz.fr.</span>]);                
             },
             "version": () => {
-                setOutput(oldOutput => [
-                    ...oldOutput,
-                    <span>&copy; tamdaz.sh version 0.0.1, tous droits réservés</span>
-                ]);
+                setOutput(oldOutput => [...oldOutput, <span>&copy; tamdaz.sh version 0.0.1, tous droits réservés</span>]);
             },
-            "default": () => {
-                displayCommandNotFound();
-            }
+            "default": () => displayCommandNotFound()
         }
 
         return (availableCommands[command] || availableCommands['default'])();
     }
 
-    /** @type {{ target: HTMLSpanElement }} e */
+    /** @param {{ target: HTMLSpanElement }} e */
     const handleInput = (e) => {
+        if (historyRef.current.length !== 0) {
+            if (e.key === "ArrowUp") {
+                if (indexRef.current < historyRef.current.length - 1) {
+                    indexRef.current += 1;
+                }
+
+                e.target.innerText = historyRef.current[indexRef.current];
+            }
+    
+            if (e.key === "ArrowDown") {
+                // -1 in this condition allows to make input blank and type a command, like in bash.
+                if (indexRef.current > -1) {
+                    indexRef.current -= 1;
+                }
+
+                if (indexRef.current === -1) {
+                    e.target.innerText = "";
+                } else {
+                    e.target.innerText = historyRef.current[indexRef.current];
+                }
+            }
+        }
+
         if (e.key === "Enter") {
             e.preventDefault();
+
             e.target.contentEditable = false;
-            
-            const args = e.target.innerText.replace("\n", '').split(" ");
+
+            const input = e.target.innerText.replace("\n", '');
+            const args = input.split(" ");
 
             const command = args[0];
-            const argv = Array.from(args); // immutable array
+            const argv = Array.from(args); // immuable array
             
             argv.shift();
 
             executeCommand(command, argv);
+
+            if (input !== "" && input !== "historyc") {
+                setHistory(oldHistory => [...oldHistory, input]);
+            }
+            
+            indexRef.current = 0;
             createShell();
         }
     }
@@ -110,11 +159,9 @@ export default function Terminal() {
     const displayCommandNotFound = () => {
         new Audio(beep_error).play();
 
-        const helpOutput = <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ color: "#f00" }}>
-                Commande introuvable, tapez "help" pour afficher une liste de commandes disponibles.
-            </span>
-        </div>
+        const helpOutput = <span style={{ color: "#f00" }}>
+            Commande introuvable, tapez "help" pour afficher une liste de commandes disponibles.
+        </span>
 
         setOutput(oldOutput => [...oldOutput, helpOutput]);
 
@@ -137,23 +184,21 @@ export default function Terminal() {
         }
     }
 
-    React.useEffect(() => {
-        createShell();
-    }, []);
+    React.useEffect(() => createShell(), []);
+
+    React.useEffect(() => focusInput(), [output]);
 
     React.useEffect(() => {
-        focusInput();
-    }, [output]);
+        historyRef.current = history;
+    }, [history]);
 
-    return <>
-        <div ref={terminalRef} className="tz-sh-terminal" onClick={focusInput}>
-            {
-                output.map((o, k) => {
-                    return <React.Fragment key={`output-id-${k}`}>
-                        { o }
-                    </React.Fragment>
-                })
-            }
-        </div>
-    </>
+    return <div ref={terminalRef} className="tz-sh-terminal" onClick={focusInput}>
+        {
+            output.map((o, k) => {
+                return <React.Fragment key={`output-id-${k}`}>
+                    { o }
+                </React.Fragment>
+            })
+        }
+    </div>
 }
