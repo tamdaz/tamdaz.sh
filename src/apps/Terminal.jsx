@@ -90,12 +90,12 @@ export default function Terminal() {
                 setHistory([])
                 setOutput(oldOutput => [...oldOutput, <span>Historique des commandes effacés.</span>]);
             },
-            "portfolio": async () => {
-                window.open("https://tamdaz.fr", "_blank");
-
-                await awaitSleep(1000);
-
+            "portfolio": () => {
                 setOutput(oldOutput => [...oldOutput, <span>Accès au site portfolio: https://tamdaz.fr.</span>]);
+                
+                setTimeout(() => {
+                    window.open("https://tamdaz.fr", "_blank");
+                }, 1000);
             },
             "version": () => {
                 setOutput(oldOutput => [...oldOutput, <span>&copy; tamdaz.sh version 0.0.1, tous droits réservés</span>]);
