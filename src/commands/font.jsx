@@ -2,7 +2,6 @@ import applied from './../assets/sounds/applied.wav';
 import beep_error from './../assets/sounds/beep_error.wav';
 
 export const changeFont = (fontName, setOutput) => {
-    
     if (["Spleen", "Tamzen", "Terminus", "Unifont"].includes(fontName)) {
         new Audio(applied).play();
 
@@ -19,7 +18,7 @@ export const changeFont = (fontName, setOutput) => {
 }
 
 export const displayHelpFont = () => {
-    const helpOutput = <>
+    return <>
         <span>&gt;&gt;&gt; AIDE DE LA COMMANDE "font" :</span>
         <span>&gt;&gt;&gt; Permet changer la police d'écriture.</span>
         <span>Plusieurs valeurs sont possibles pour le 1er argument:.</span>
@@ -27,7 +26,5 @@ export const displayHelpFont = () => {
         <span>- Tamzen</span>
         <span>- Terminus (par défaut)</span>
         <span>- Unifont</span>
-    </>
-
-    return helpOutput;
+    </>;
 }

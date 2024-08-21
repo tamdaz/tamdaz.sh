@@ -1,5 +1,5 @@
 export const displayHelp = () => {
-    const helpOutput = <>
+    return <>
         <span>&gt;&gt;&gt; AIDE COMMANDES</span>
         <span>&gt;&gt; Commandes principales :</span>
         <span>aboutme      --&gt; Affiche les informations à propos de moi.</span>
@@ -15,6 +15,4 @@ export const displayHelp = () => {
         <span>color        --&gt; Change de couleur.</span>
         <span>brightness   --&gt; Modifie la luminosité de l'écran.</span>
     </>
-
-    return helpOutput;
 }

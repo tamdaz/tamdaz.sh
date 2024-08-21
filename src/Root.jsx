@@ -60,7 +60,9 @@ export default function Root() {
 	}, []);
 
 	return <>
-		<div className="tz-sh-screen-fx"></div>
+		<div className="tz-sh-screen tz-sh-screen-scanline"></div>
+		<div className="tz-sh-screen tz-sh-screen-circle-light"></div>
+		<div className="tz-sh-screen-circle-light"></div>
 		<div style={{ position: "absolute", zIndex: -3 }}>
 			<WindowContext.Provider value={{ windows, setWindows }}>
 				{

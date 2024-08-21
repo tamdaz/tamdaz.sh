@@ -3,7 +3,7 @@ import color_changed from "./../assets/sounds/color_changed.wav";
 /**
  * @param {number} id 
  */
-export const changeColor = (id) => {
+export const changeColor = (id, setOutput) => {
     const colors = [
         { color: "#dd5858", bgColor: "#140505" }, // red
         { color: "#dd9b58", bgColor: "#140d05" }, // orange
@@ -17,16 +17,20 @@ export const changeColor = (id) => {
         { color: "#dddddd", bgColor: "#141414" }, // grey
     ];
 
-    document.querySelector(':root').style.setProperty('--terminal-color', colors[id].color);
-    document.querySelector(':root').style.setProperty('--terminal-bg-color', colors[id].bgColor);
-
-    saveColors(colors[id].color, colors[id].bgColor);
-
-    new Audio(color_changed).play();
+    if (colors[id] === undefined) {
+        setOutput(oldOutput => [...oldOutput, displayHelpColor()]);
+    } else {
+        document.querySelector(':root').style.setProperty('--terminal-color', colors[id].color);
+        document.querySelector(':root').style.setProperty('--terminal-bg-color', colors[id].bgColor);
+    
+        saveColors(colors[id].color, colors[id].bgColor);
+    
+        new Audio(color_changed).play();
+    }
 }
 
 export const displayHelpColor = () => {
-    const helpOutput = <>
+    return <>
         <span>&gt;&gt;&gt; AIDE DE LA COMMANDE "color" :</span>
         <span>&gt;&gt;&gt; Permet de changer de couleur grâce au numéro indiqué ci-dessous.</span>
         <span></span>
@@ -40,9 +44,7 @@ export const displayHelpColor = () => {
         <span>7 --&gt; Passer au violet.</span>
         <span>8 --&gt; Passer au rose.</span>
         <span>9 --&gt; Passer au gris.</span>
-    </>
-
-    return helpOutput;
+    </>;
 }
 
 /**

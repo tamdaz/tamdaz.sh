@@ -24,7 +24,7 @@ export default function Terminal() {
 
     const indexRef = React.useRef(0);
 
-    const { windows, setWindows } = React.useContext(WindowContext);
+    const { setWindows } = React.useContext(WindowContext);
 
     const executeCommand = (command, args) => {
         const availableCommands = {
@@ -45,13 +45,7 @@ export default function Terminal() {
                     }];
                 });
             },
-            "brightness": () => {
-                if (!isNaN(args[0])) {
-                    changeBrightness(args[0], setOutput);
-                } else {
-                    setOutput(oldOutput => [...oldOutput, displayHelpBrightness()]);
-                }
-            },
+            "brightness": () =>  changeBrightness(args[0], setOutput),
             "clear": () => setOutput([]),
             "color": () => {
                 if (!isNaN(args[0]) && args[0] >= 0 && args[0] <= 9) {
