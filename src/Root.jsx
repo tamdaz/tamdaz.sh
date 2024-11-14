@@ -4,12 +4,39 @@ import Window from './Window';
 import Loading from './apps/Loading';
 import Terminal from './apps/Terminal';
 
+import log from './assets/dmesg.txt?raw';
+
 import { loadColors } from "./commands/color";
+
+import startup from "./assets/sounds/startup.wav?rawx";
 
 export const WindowContext = React.createContext(null);
 
 export default function Root() {
 	const [windows, setWindows] = React.useState([]);
+	/** @type {{ current : HTMLDivElement }} logRef */
+	const logRef = React.useRef(null);
+
+	React.useEffect(() => {
+		let i = 0;
+
+		new Audio(startup).play();
+
+		for (const message of log.split("\n")) {
+			setTimeout(() => {
+				logRef.current.innerHTML += message + "<br/>"
+				logRef.current.scrollTo(0, "100%");
+
+				logRef.current.scrollTo({
+					top: logRef.current.scrollHeight
+				})
+			}, 16 * i);
+			
+			i++;
+		}
+
+		setTimeout(() => { logRef.current.style.opacity = 0 }, 10000)
+	}, []);
 
 	React.useEffect(() => {
 		/** @param { KeyboardEvent } e */
@@ -56,7 +83,7 @@ export default function Root() {
 				view: <Loading />,
 				closeable: false
 			}])
-		}, 1500);
+		}, 5000);
 	}, []);
 
 	return <>
@@ -64,6 +91,7 @@ export default function Root() {
 		<div className="tz-sh-screen tz-sh-screen-circle-light"></div>
 		<div className="tz-sh-screen-circle-light"></div>
 		<div style={{ position: "absolute", zIndex: -3 }}>
+			<div style={{ height : "100vh", overflowY: "hidden", transition: "250ms" }} ref={logRef}></div>
 			<WindowContext.Provider value={{ windows, setWindows }}>
 				{
 					windows.map((window) => {

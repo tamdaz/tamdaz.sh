@@ -47,7 +47,7 @@ body {
     }
 }
 
-button, input, select {
+button, input, select, pre {
     font-family: "VecTerminus16", monospace;
     font-size: 12pt;
 }
