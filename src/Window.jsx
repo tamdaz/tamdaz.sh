@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react"
 
 import ding from "./assets/sounds/ding.wav";
@@ -10,9 +11,12 @@ import { WindowContext } from "./Root";
 export default function Window({
 	title = "Abstract Window",
 	initialWidth = 640, initialHeight = 360,
+	minWidth = 320, minHeight = 180,
 	initialX = 100, initialY = 100,
 	closeable = true,
-	view, id
+	draggable = true,
+	resizable = true,
+	view, id, zIndex: initialZIndex = 1
 }) {
 	/**
 	 * @type {{ current: HTMLDivElement }} viewRef
@@ -29,10 +33,49 @@ export default function Window({
 	 */
 	const viewRef = React.useRef(null);
 
-	const { windows, setWindows } = React.useContext(WindowContext);
+	const { setWindows, bringWindowToFront } = React.useContext(WindowContext);
 
 	const [canDrag, setDrag] = React.useState(false);
 	const [relativeMouse, setRelativeMouse] = React.useState({});
+	const bringToFront = React.useCallback(() => {
+		bringWindowToFront(id);
+	}, [bringWindowToFront, id]);
+
+	React.useEffect(() => {
+		const handleMouseMove = (e) => {
+			if (canDrag === true) {
+				const newLeft = e.clientX - relativeMouse.left;
+				const newTop = e.clientY - relativeMouse.top;
+				
+				// Empêcher de dépasser les bords gauche et haut
+				// Autoriser le dépassement droit et bas (avec limite minimale visible)
+				const minVisibleWidth = 100; // Garder au moins 100px visibles
+				const maxLeft = window.innerWidth - minVisibleWidth;
+				const maxTop = window.innerHeight - 40; // Garder au moins la barre de titre visible
+				
+				windowRef.current.style.left = `${Math.max(0, Math.min(newLeft, maxLeft))}px`;
+				windowRef.current.style.top = `${Math.max(0, Math.min(newTop, maxTop))}px`;
+			}
+		};
+
+		const handleMouseUp = () => {
+			setDrag(false);
+		};
+
+		if (canDrag) {
+			document.addEventListener('mousemove', handleMouseMove);
+			document.addEventListener('mouseup', handleMouseUp);
+		}
+
+		return () => {
+			document.removeEventListener('mousemove', handleMouseMove);
+			document.removeEventListener('mouseup', handleMouseUp);
+		};
+	}, [canDrag, relativeMouse]);
+
+	React.useEffect(() => {
+		bringToFront();
+	}, [bringToFront]);
 
 	React.useEffect(() => {
 		new Audio(box_sizing).play();
@@ -41,7 +84,7 @@ export default function Window({
 			{ width: `${window.innerWidth}px`, height: `${window.innerHeight}px`, left: 0, top: 0 },
 			{ width: initialWidth + "px", height: initialHeight + "px", left: initialX + "px", top: initialY + "px" },
 		], {
-			duration: 250,
+			duration: 300,
 			easing: "cubic-bezier(0,.71,.19,1)"
 		});
 
@@ -64,42 +107,19 @@ export default function Window({
 		}, 250);
 
 		setTimeout(() => {
-			headerRef.current.style.opacity = 1;
-			viewRef.current.style.opacity = 1;
+			if (headerRef.current) headerRef.current.style.opacity = 1;
+			if (viewRef.current) viewRef.current.style.opacity = 1;
 			
 			new Audio(ding).play();
-		}, 1250)
-	}, []);
-
-	/**
-	 * Déplacer la fenêtre.
-	 * 
-	 * @param {MouseEvent} e 
-	 */
-	const touchHandle = (e) => {
-		if (canDrag === true) {
-			if (e.clientX - relativeMouse.left >= window.innerWidth - windowRef.current.getBoundingClientRect().width) {
-				windowRef.current.style.left = window.innerWidth - windowRef.current.getBoundingClientRect().width
-			} else if (e.clientX - relativeMouse.left <= 0) {
-				windowRef.current.style.left = 0
-			} else {
-				windowRef.current.style.left = `${e.clientX - relativeMouse.left}px`
-			}
-
-			if (e.clientY - relativeMouse.top >= window.innerHeight - windowRef.current.getBoundingClientRect().height) {
-				windowRef.current.style.top = window.innerHeight - windowRef.current.getBoundingClientRect().height
-			} else if (e.clientY - relativeMouse.top <= 0) {
-				windowRef.current.style.top = 0
-			} else {
-				windowRef.current.style.top = `${e.clientY - relativeMouse.top}px`
-			}
-		}
-	}
+		}, 1250);
+	}, [initialWidth, initialHeight, initialX, initialY]);
 
 	/**
 	 * @param {MouseEvent} e 
 	 */
 	const startDrag = (e) => {
+		if (!draggable) return;
+		bringToFront();
 		setDrag(true);
 		setRelativeMouse({
 			left: e.clientX - windowRef.current.getBoundingClientRect().left,
@@ -107,20 +127,16 @@ export default function Window({
 		})
 	};
 
-	/**
-	 * @param {MouseEvent} e 
-	 */
-	const stopDrag = (e) => {
-		setDrag(false);
-	};
-
 
 	const closeApp = () => {
 		const duration = 250;
 
-		const [fromX, fromY] = [
+		const bounds = windowRef.current.getBoundingClientRect();
+		const [fromX, fromY, currentWidth, currentHeight] = [
 			windowRef.current.getBoundingClientRect().left,
-			windowRef.current.getBoundingClientRect().top
+			windowRef.current.getBoundingClientRect().top,
+			bounds.width,
+			bounds.height
 		];
 
 		new Audio(close_window).play();
@@ -128,9 +144,13 @@ export default function Window({
 		headerRef.current.style.opacity = 0;
 		viewRef.current.style.opacity = 0;
 
+		// Permet la reduction visuelle complete meme si la fenetre a une taille minimale.
+		windowRef.current.style.minWidth = "0px";
+		windowRef.current.style.minHeight = "0px";
+
 		windowRef.current.animate([
 			{ left: fromX + "px", top: fromY + "px" },
-			{ width: 0, height: 0, left: fromX + initialWidth / 2 + "px", top: fromY + initialHeight / 2 + "px "}
+			{ width: 0, height: 0, left: fromX + currentWidth / 2 + "px", top: fromY + currentHeight / 2 + "px "}
 		], {
 			duration: duration,
 			easing: "linear",
@@ -138,19 +158,24 @@ export default function Window({
 		});
 		
 		setTimeout(() => {
-			setWindows(windows.filter(window => window.id !== id))
+			setWindows((oldWindows) => oldWindows.filter((windowData) => windowData.id !== id));
 		}, duration);
 	}
 
-	return <div className="tz-sh-window"
-		style={{ width: initialWidth, height: initialHeight, left: initialX, top: initialY }}
-		ref={windowRef}>
+	return <div className={`tz-sh-window ${resizable ? '' : 'tz-sh-window-no-resize'}`}
+		style={{
+			width: initialWidth,
+			height: initialHeight,
+			minWidth,
+			minHeight,
+			left: initialX,
+			top: initialY,
+			zIndex: initialZIndex
+		}}
+		ref={windowRef}
+		onMouseDown={bringToFront}>
 		<div ref={headerRef}
 			onMouseDown={startDrag}
-			onMouseMove={touchHandle}
-			onMouseLeave={touchHandle}
-			onMouseEnter={touchHandle}
-			onMouseUp={stopDrag}
 			className="tz-sh-terminal-header">
 			<span>{title}</span>
 			<span style={{ flex: 1 }}></span>

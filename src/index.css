@@ -4,33 +4,15 @@
 }
 
 @font-face {
-    font-family: Tamzen;
-    src: url("./assets/fonts/Tamzen.ttf");
-    font-weight: 100;
-}
-
-@font-face {
-    font-family: Spleen;
-    src: url("./assets/fonts/Spleen.otf");
-    font-weight: 100;
-}
-
-@font-face {
-    font-family: Terminus;
+    font-family: VecTerminus16;
     src: url("./assets/fonts/Terminus.otf");
-    font-weight: 100;
-}
-
-@font-face {
-    font-family: Unifont;
-    src: url("./assets/fonts/Unifont.otf");
-    font-weight: 100;
+    font-weight: 400;
 }
 
 body {
     overflow: hidden;
-    font-family: Terminus, monospace;
-    font-size: 12pt;
+    font-family: "VecTerminus16", monospace;
+    font-size: 16px;
     color: var(--terminal-color);
     user-select: none;
 
@@ -49,7 +31,13 @@ body {
 
 button, input, select, pre {
     font-family: "VecTerminus16", monospace;
-    font-size: 12pt;
+    font-size: 16px;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: "VecTerminus16", monospace;
+    font-size: 16px;
 }
 
 .tz-sh-screen {
@@ -62,9 +50,10 @@ button, input, select, pre {
 
 .tz-sh-screen-scanline {
     background-image: url("./assets/images/scanline.svg");
+    background-size: cover;
     mix-blend-mode: color-dodge;
 
-    animation: anim-screen-fx 10s linear infinite;
+    animation: anim-screen-fx 5s linear infinite;
 }
 
 .tz-sh-screen-circle-light {
@@ -75,10 +64,18 @@ button, input, select, pre {
 }
 
 @keyframes anim-screen-fx {
-    from {
-        background-position-y: 1300px;
-    } to {
-        background-position-y: 0;
+    0% {
+        opacity: 10%;
+        background-position-y: 25%;
+    }
+
+    50% {
+        opacity: 1;
+    }
+    
+    100% {
+        opacity: 10%;
+        background-position-y: -100%;
     }
 }
 
@@ -92,6 +89,12 @@ button, input, select, pre {
     
     display: flex;
     flex-direction: column;
+    resize: both;
+    overflow: hidden;
+}
+
+.tz-sh-window-no-resize {
+    resize: none;
 }
 
 .tz-sh-input {
@@ -122,7 +125,8 @@ button, input, select, pre {
     opacity: 0;
     display: flex;
     background-color: var(--terminal-bg-color);
-    padding: 2px 8px 0 8px; gap: 4;
+    padding: 2px 8px 0 8px;
+    gap: 4px;
     border-bottom: 1px solid var(--terminal-color);
 
     min-height: 19.33px;
@@ -133,7 +137,124 @@ button, input, select, pre {
     height: 100%;
     opacity: 0;
     background-color: var(--terminal-bg-color);
-    overflow: hidden;
+    overflow: auto;
+}
+
+.tz-sh-debug-overlay {
+    position: absolute;
+    z-index: -4;
+    left: 16px;
+    top: 16px;
+    pointer-events: none;
+}
+
+.tz-sh-debug-overlay pre {
+    margin: 0;
+    white-space: pre;
+    font-family: "VecTerminus16", monospace;
+}
+
+.tz-sh-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 8px;
+}
+
+.tz-sh-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.tz-sh-toolbar button,
+.tz-sh-toolbar input {
+    background: transparent;
+    color: var(--terminal-color);
+    border: 1px solid var(--terminal-color);
+    padding: 4px 6px;
+    outline: none;
+}
+
+.tz-sh-toolbar button {
+    cursor: pointer;
+}
+
+.tz-sh-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+}
+
+.tz-sh-box {
+    border: 1px solid var(--terminal-color);
+    min-height: 0;
+    overflow: auto;
+}
+
+.tz-sh-row {
+    display: grid;
+    grid-template-columns: 2fr 80px 110px;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(99, 221, 88, 0.2);
+    cursor: pointer;
+}
+
+.tz-sh-row:hover,
+.tz-sh-row.selected {
+    background-color: rgba(99, 221, 88, 0.15);
+}
+
+.tz-sh-status {
+    min-height: 20px;
+}
+
+.tz-sh-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tz-sh-table th,
+.tz-sh-table td {
+    text-align: left;
+    border-bottom: 1px solid rgba(99, 221, 88, 0.2);
+    padding: 4px 6px;
+}
+
+.tz-sh-table tbody tr:hover,
+.tz-sh-table tbody tr.selected {
+    background-color: rgba(99, 221, 88, 0.15);
+}
+
+.tz-sh-tree-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.tz-sh-tree-node {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(99, 221, 88, 0.2);
+    cursor: pointer;
+}
+
+.tz-sh-tree-node:hover,
+.tz-sh-tree-node.selected {
+    background-color: rgba(99, 221, 88, 0.15);
+}
+
+@media (max-width: 900px) {
+    .tz-sh-split {
+        grid-template-columns: 1fr;
+    }
 }
 
 ::-webkit-scrollbar {
