@@ -92,7 +92,7 @@ export default function ProcessManager() {
                         onClick={() => setSelectedPid(process.pid)}
                     >
                         <span>{process.pid.toString().padStart(4, " ")} {process.name}</span>
-                        <span style={{ color: "#8abf7a" }}>{process.s} {process.time}</span>
+                        <span>{process.s} {process.time}</span>
                     </div>;
                 })}
             </div>

@@ -1,19 +1,14 @@
-import { readFile, resolvePath } from "./fileSystem";
+import { readFile, resolvePath, isExecutable, getFileInfo } from "./fileSystem";
 
 const CONTINUOUS_DEVICES = new Set(["/dev/zero", "/dev/random"]);
 
-const randomHexBlock = (bytes = 32) => {
-    if (window.crypto?.getRandomValues) {
-        const array = new Uint8Array(bytes);
-        window.crypto.getRandomValues(array);
-        return Array.from(array)
-            .map((value) => value.toString(16).padStart(2, "0"))
-            .join("");
+const randomCharBlock = (length = 64) => {
+    let result = '';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+{}|:<>?-=[];,./éèêëàâäôöùûüîïçñÉÈÊËÀÂÄÔÖÙÛÜÎÏÇÑ';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-
-    return Array.from({ length: bytes })
-        .map(() => Math.floor(Math.random() * 256).toString(16).padStart(2, "0"))
-        .join("");
+    return result;
 };
 
 export const isContinuousCatTarget = (path) => CONTINUOUS_DEVICES.has(resolvePath(path));
@@ -25,11 +20,11 @@ export const isContinuousCatTarget = (path) => CONTINUOUS_DEVICES.has(resolvePat
 export const readContinuousCatChunk = (path) => {
     const target = resolvePath(path);
     if (target === "/dev/zero") {
-        return "0".repeat(96);
+        return "0".repeat(128); // Ou des caractères null ' '
     }
 
     if (target === "/dev/random") {
-        return randomHexBlock(32);
+        return randomCharBlock(128);
     }
 
     return "";
@@ -41,10 +36,21 @@ export const executeCat = (args) => {
     }
     
     const filename = args[0];
+    const fullPath = resolvePath(filename);
     const content = readFile(filename);
     
     if (content === null) {
         return <span style={{ color: '#f00' }}>cat: {filename}: Aucun fichier ou dossier de ce type</span>;
+    }
+
+    // Empêcher la lecture des fichiers binaires exécutables (programmes compilés)
+    const isBinary = fullPath.startsWith('/bin/') || 
+                     fullPath.startsWith('/sbin/') ||
+                     fullPath.startsWith('/usr/bin/') ||
+                     fullPath.startsWith('/usr/sbin/');
+    
+    if (isBinary && isExecutable(fullPath)) {
+        return <span style={{ color: '#f00' }}>cat: {filename}: Ne peut pas lire un fichier exécutable</span>;
     }
     
     const lines = content.split('\n');

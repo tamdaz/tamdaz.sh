@@ -78,7 +78,7 @@ const buildDefaultStructure = () => {
             _modified: now
         },
         "/home/user/about.txt": {
-            _content: "Projet cree par tamdaz.\nVisitez https://tamdaz.fr pour en savoir plus.",
+            _content: "Projet créé par tamdaz.\nVisitez https://tamdaz.fr pour en savoir plus.",
             _permissions: "-rw-r--r--",
             _owner: "user",
             _group: "user",
@@ -211,6 +211,14 @@ export const getFileSystem = () => {
     }
 
     let needsSave = false;
+
+    // Réinitialise les répertoires virtuels et temporaires au démarrage
+    for (const key of Object.keys(existing)) {
+        if (key.match(/^\/(tmp|dev|proc)(\/|$)/)) {
+            delete existing[key];
+            needsSave = true;
+        }
+    }
 
     for (const path in defaultStructure) {
         if (!existing[path]) {
@@ -388,6 +396,22 @@ export const getFileInfo = (path) => {
         modified: file._modified || asIso(),
         size
     };
+};
+
+/**
+ * Determine si un fichier est executable en verifiant le bit 'x' dans les permissions.
+ */
+export const isExecutable = (path) => {
+    const info = getFileInfo(path);
+    if (!info || info.isDir) return false;
+    
+    const perms = info.permissions;
+    if (!perms || perms.length < 10) return false;
+    
+    // Format typique: -rwxr-xr-x, drwxr-xr-x
+    // Index: 0=type, 1-3=owner, 4-6=group, 7-9=other
+    // Cherche le bit 'x' dans owner (index 3), group (index 6), ou other (index 9)
+    return perms[3] === 'x' || perms[6] === 'x' || perms[9] === 'x';
 };
 
 /**

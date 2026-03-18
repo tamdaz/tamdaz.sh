@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 import React from "react";
 
 import AboutMe from "./AboutMe";
@@ -11,7 +11,7 @@ import TicTacToeGame from "./TicTacToeGame";
 import FileManager from "./FileManager";
 import ProcessManager from "./ProcessManager";
 
-import { WindowContext } from "../Root";
+import { WindowContext } from "../contexts/WindowContext";
 
 import beep_error from "./../assets/sounds/beep_error.wav";
 
@@ -44,7 +44,7 @@ import { executeChown } from "../commands/chown";
 import { writeFile, getCurrentDir, isSilentSinkPath } from "../commands/fileSystem";
 import { ensureProcessState, killProcess, spawnProcess, spawnTransientProcess } from "../commands/processSystem";
 import { registerTTY, setActiveTTY, unregisterTTY } from "../commands/ttySystem";
-
+import { executeWatch } from "../commands/watch";
 const TRANSIENT_EXCLUDED_COMMANDS = new Set([
     "",
     "aboutme",
@@ -65,7 +65,8 @@ const TRANSIENT_EXCLUDED_COMMANDS = new Set([
     "power4",
     "rps",
     "ttt",
-    "version"
+    "version",
+    "watch"
 ]);
 
 const extractText = (node) => {
@@ -169,8 +170,8 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
 
         if (!isSilentSinkPath(filename)) {
             const message = append
-                ? `Contenu ajoute a '${filename}'.`
-                : `Contenu ecrit dans '${filename}'.`;
+                ? `Contenu ajouté à '${filename}'.`
+                : `Contenu écrit dans '${filename}'.`;
             appendOutput(<span>{message}</span>);
         }
     }, [appendOutput]);
@@ -188,8 +189,8 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             : (cwd.startsWith("/home/user/") ? `~${cwd.substring("/home/user".length)}` : cwd);
 
         appendOutput(<div style={{ display: "flex", flexDirection: "row" }}>
-            <span>user@tamdaz.sh:{shortCwd}$&nbsp;</span>
-            <span contentEditable={true} style={{ width: "100%", outline: "none" }} onKeyDown={handleInput}></span>
+            <span style={{ whiteSpace: "nowrap" }}>user@tamdaz.sh:{shortCwd}$&nbsp;</span>
+            <span contentEditable={true} style={{ flex: 1, outline: "none", wordBreak: "break-all" }} onKeyDown={handleInput}></span>
         </div>);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [appendOutput]);
@@ -211,10 +212,10 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
         return true;
     }, [appendOutput, createShell]);
 
-    const startContinuousCat = React.useCallback((path) => {
+    const startContinuousCat = React.useCallback((path, ppidOverride = null) => {
         const catProcess = spawnProcess({
             name: "cat",
-            ppid: shellPidRef.current || 1,
+            ppid: ppidOverride || shellPidRef.current || 1,
             status: "running",
             user: "user",
             tty,
@@ -235,7 +236,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
         };
     }, [appendOutput, tty]);
 
-    const executeCommand = React.useCallback((command, args) => {
+    const executeCommand = React.useCallback(function internalExecute(command, args, customEmit, ppidOverride = null) {
         let redirectType = null;
         let redirectFile = null;
         let actualArgs = [...args];
@@ -253,7 +254,9 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 return;
             }
 
-            if (redirectFile) {
+            if (customEmit) {
+                customEmit(commandOutput);
+            } else if (redirectFile) {
                 handleRedirection(commandOutput, redirectType, redirectFile);
             } else {
                 appendOutput(commandOutput);
@@ -261,14 +264,14 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
         };
 
         if (command && !TRANSIENT_EXCLUDED_COMMANDS.has(command) && !isContinuousCat) {
-            spawnTransientProcess(command, shellPidRef.current || 1, actualArgs);
+            spawnTransientProcess(command, ppidOverride || shellPidRef.current || 1, actualArgs);
         }
 
         const availableCommands = {
             "": () => null,
             aboutme: () => openWindow({
                 id: "window-about-me",
-                title: "A propos de moi",
+                title: "À propos de moi",
                 initialX: window.innerWidth - (16 * 30) - 100,
                 initialY: 100,
                 initialWidth: 16 * 30,
@@ -281,11 +284,12 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             cat: () => {
                 if (isContinuousCat) {
                     if (redirectFile) {
-                        appendOutput(<span style={{ color: "#f00" }}>Redirection non supportee pour un flux infini.</span>);
+                        // Allow a large block of random/continuous data to be written once
+                        emitCommandOutput(readContinuousCatChunk(actualArgs[0]).repeat(20));
                         return { blocking: false };
                     }
 
-                    startContinuousCat(actualArgs[0]);
+                    startContinuousCat(actualArgs[0], ppidOverride);
                     return { blocking: true };
                 }
 
@@ -318,7 +322,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             echo: () => emitCommandOutput(executeEcho(actualArgs)),
             exit: () => {
                 if (isMainTerminal) {
-                    appendOutput(<span style={{ color: "#f00" }}>Le terminal principal ne peut pas etre ferme.</span>);
+                    appendOutput(<span style={{ color: "#f00" }}>Le terminal principal ne peut pas être fermé.</span>);
                     return { blocking: false };
                 }
 
@@ -339,52 +343,33 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             }, { unique: true, processName: "files" }),
             font: () => {
                 if (!actualArgs[0]) {
-                    appendOutput(displayHelpFont());
+                    emitCommandOutput(displayHelpFont());
                 } else {
                     changeFont(actualArgs[0], setOutput);
                 }
             },
-            help: () => appendOutput(displayHelp()),
-            history: () => appendOutput(<>
+            help: () => emitCommandOutput(displayHelp()),
+            history: () => emitCommandOutput(<>
                 {historyRef.current.length === 0
                     ? <span style={{ color: "#888" }}>Historique vide.</span>
                     : historyRef.current.map((entry, index) => <span key={`hist-${index}`}>{String(historyRef.current.length - index).padStart(3, " ")}  {entry}</span>)}
             </>),
             historyc: () => {
                 setHistory([]);
-                appendOutput(<span>Historique des commandes efface.</span>);
+                emitCommandOutput(<span>Historique des commandes effacé.</span>);
             },
             ip: () => emitCommandOutput(executeIp()),
             kill: () => emitCommandOutput(executeKill(actualArgs)),
-            less: () => appendOutput(<span style={{ color: "#f00" }}>{"Commande less supprimee. Utilisez cat ou vim."}</span>),
+            less: () => appendOutput(<span style={{ color: "#f00" }}>{"Commande less supprimée. Utilisez cat ou vim."}</span>),
             ls: () => emitCommandOutput(executeLs(actualArgs)),
-            man: () => {
-                const result = executeMan(actualArgs);
-                if (result.error) {
-                    appendOutput(<span>{result.message}</span>);
-                    return;
-                }
-
-                const manId = `window-man-${result.page}`;
-                openWindow({
-                    id: manId,
-                    title: `man ${result.page}`,
-                    initialX: window.innerWidth / 2 - 320,
-                    initialY: 100,
-                    initialWidth: 640,
-                    initialHeight: 480,
-                    minWidth: 520,
-                    minHeight: 280,
-                    view: <ManPage command={result.page} />
-                }, { unique: true, processName: "man" });
-            },
+            man: () => emitCommandOutput(executeMan(actualArgs)),
             md5sum: () => emitCommandOutput(executeHashsum("md5sum", actualArgs)),
             mkdir: () => emitCommandOutput(executeMkdir(actualArgs)),
-            more: () => appendOutput(<span style={{ color: "#f00" }}>{"Commande more supprimee. Utilisez cat ou vim."}</span>),
+            more: () => appendOutput(<span style={{ color: "#f00" }}>{"Commande more supprimée. Utilisez cat ou vim."}</span>),
             mv: () => emitCommandOutput(executeMv(actualArgs)),
             ping: () => emitCommandOutput(executePing(actualArgs)),
             portfolio: () => {
-                appendOutput(<span>Acces au site portfolio: https://tamdaz.fr.</span>);
+                appendOutput(<span>Accès au site portfolio: https://tamdaz.fr.</span>);
                 setTimeout(() => window.open("https://tamdaz.fr", "_blank"), 1000);
             },
             procman: () => openWindow({
@@ -458,7 +443,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                     view: <TicTacToeGame />
                 }, { processName: "ttt" });
             },
-            version: () => appendOutput(<span>&copy; tamdaz.sh version 0.0.1, tous droits reserves</span>),
+            version: () => appendOutput(<span>&copy; tamdaz.sh version 0.0.1, tous droits réservés</span>),
             vim: () => {
                 const result = executeVim(actualArgs, setWindows);
 
@@ -482,11 +467,40 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                     }} />
                 }, { processName: "vim" });
             },
+            watch: () => {
+                if (actualArgs.length === 0) {
+                    emitCommandOutput(<span style={{ color: '#f00' }}>watch: veuillez fournir une commande à exécuter</span>);
+                    return { blocking: false };
+                }
+                
+                const watchProcess = spawnProcess({
+                    name: "watch",
+                    ppid: ppidOverride || shellPidRef.current || 1,
+                    status: "running",
+                    user: "user",
+                    tty,
+                    cmdline: `watch ${actualArgs.join(" ")}`
+                });
+
+                const boundExecuteCommand = (cmd, cArgs, emit) => internalExecute(cmd, cArgs, emit, watchProcess.pid);
+                
+                const watchComponent = executeWatch(actualArgs, boundExecuteCommand, (ref) => {
+                    activeStreamRef.current = {
+                        stop: () => {
+                            if (ref && ref.stop) ref.stop();
+                            killProcess(watchProcess.pid);
+                        }
+                    };
+                });
+                
+                emitCommandOutput(watchComponent);
+                return { blocking: true };
+            },
             default: () => displayCommandNotFound()
         };
 
         return (availableCommands[command] || availableCommands.default)();
-    }, [appendOutput, displayCommandNotFound, handleRedirection, isMainTerminal, openTerminalWindow, openWindow, setWindows, startContinuousCat, windowId]);
+    }, [appendOutput, displayCommandNotFound, handleRedirection, isMainTerminal, openTerminalWindow, openWindow, setWindows, startContinuousCat, tty, windowId]);
 
     const handleInput = React.useCallback((e) => {
         if (e.ctrlKey && e.key.toLowerCase() === "c") {
@@ -556,13 +570,16 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
 
         if (output.length === 1) {
             const shell = terminalRef.current.lastChild?.lastChild;
-            if (shell?.getAttribute("contenteditable") === "false") {
+            if (shell && typeof shell.getAttribute === "function" && shell.getAttribute("contenteditable") === "false") {
                 shell.setAttribute("contenteditable", "true");
                 shell.innerText = "";
             }
         }
 
-        terminalRef.current.lastChild?.lastChild?.focus();
+        const inputNode = terminalRef.current.lastChild?.lastChild;
+        if (inputNode && typeof inputNode.focus === "function") {
+            inputNode.focus();
+        }
     }, [activeWindowId, output.length, windowId]);
 
     React.useEffect(() => {
@@ -579,6 +596,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
         });
 
         shellPidRef.current = shellProcess.pid;
+        setWindows((oldWindows) => oldWindows.map((w) => w.id === windowId ? { ...w, processPid: shellProcess.pid } : w));
         createShell();
 
         return () => {
@@ -586,7 +604,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 killProcess(shellPidRef.current);
             }
         };
-    }, [createShell, tty]);
+    }, [createShell, setWindows, tty, windowId]);
 
     React.useEffect(() => {
         registerTTY(tty, appendTTYPayload);

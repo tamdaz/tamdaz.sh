@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+ 
 import Hex from "crypto-js/enc-hex";
 import MD5 from "crypto-js/md5";
 import SHA1 from "crypto-js/sha1";

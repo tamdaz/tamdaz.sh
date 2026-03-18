@@ -47,21 +47,17 @@ const createInitialState = () => {
     };
 };
 
-const readRawState = () => {
-    const payload = localStorage.getItem(PROCESS_STATE_KEY);
-    if (!payload) {
-        return null;
-    }
+let inMemoryState = null;
 
-    try {
-        return JSON.parse(payload);
-    } catch {
-        return null;
-    }
+// Nettoyer l'ancien processus stocké au cas où il serait encore là.
+localStorage.removeItem(PROCESS_STATE_KEY);
+
+const readRawState = () => {
+    return inMemoryState;
 };
 
 const saveState = (state) => {
-    localStorage.setItem(PROCESS_STATE_KEY, JSON.stringify(state));
+    inMemoryState = state;
     return state;
 };
 
@@ -193,6 +189,12 @@ export const killProcess = (pid) => {
 
         state.processes = state.processes.filter((process) => !toRemove.has(process.pid));
         removed = previousLength - state.processes.length;
+
+        if (removed > 0) {
+            window.dispatchEvent(new CustomEvent("tz-process-killed", {
+                detail: { pidsKilled: Array.from(toRemove) }
+            }));
+        }
 
         return state;
     });

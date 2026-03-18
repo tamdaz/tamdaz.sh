@@ -18,17 +18,38 @@ export const manPages = Object.fromEntries(
 
 export const executeMan = (args) => {
     if (args.length === 0) {
-        return {
-            error: true,
-            message: "Quelle page de manuel voulez-vous ?\nUsage: man COMMANDE\nEssayez: man man"
-        };
+        return <span style={{ color: "#f00" }}>Quelle page de manuel voulez-vous ?<br/>Usage: man COMMANDE<br/>Essayez: man man</span>;
     }
 
     const command = args[0].toLowerCase();
+    const page = manPages[command];
 
-    if (!COMMAND_INDEX[command]) {
-        return { error: true, message: `Aucune entree de manuel pour ${command}` };
+    if (!page) {
+        return <span style={{ color: "#f00" }}>Aucune entree de manuel pour {command}</span>;
     }
 
-    return { command: "man", page: command };
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 0' }}>
+            <div>
+                <strong>NAME</strong><br/>
+                <span style={{ paddingLeft: '16px' }}>{page.name} - {page.description}</span>
+            </div>
+            <div>
+                <strong>SYNOPSIS</strong><br/>
+                <span style={{ paddingLeft: '16px' }}>{page.synopsis}</span>
+            </div>
+            <div>
+                <strong>DESCRIPTION</strong><br/>
+                <span style={{ paddingLeft: '16px' }}>{page.description}</span>
+            </div>
+            {page.examples && page.examples.length > 0 && (
+                <div>
+                    <strong>EXAMPLES</strong><br/>
+                    {page.examples.map((ex, idx) => (
+                        <span key={idx} style={{ paddingLeft: '16px', display: 'block' }}>- {ex}</span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 };

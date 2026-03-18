@@ -6,8 +6,8 @@ const SECTION_LABELS = {
     navigation: "Navigation",
     fichiers: "Gestion de fichiers",
     permissions: "Permissions",
-    reseau: "Reseau",
-    systeme: "Systeme",
+    reseau: "Réseau",
+    systeme: "Système",
     hash: "Hash",
     jeux: "Jeux",
     apparence: "Apparence"
@@ -45,7 +45,7 @@ export const displayHelp = () => {
             </>;
         })}
         <span>&gt;&gt; Redirections :</span>
-        <span>[cmd] &gt; [f]   --&gt; Ecrit la sortie dans un fichier (ecrase).</span>
-        <span>[cmd] &gt;&gt; [f]  --&gt; Ajoute la sortie a un fichier.</span>
+        <span>[cmd] &gt; [f]   --&gt; Écrit la sortie dans un fichier (écrase).</span>
+        <span>[cmd] &gt;&gt; [f]  --&gt; Ajoute la sortie à un fichier.</span>
     </>;
 };

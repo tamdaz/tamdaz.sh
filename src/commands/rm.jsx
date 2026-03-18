@@ -13,7 +13,7 @@ const targetsRootOrSystem = (rawTarget) => {
         return true;
     }
 
-    // Si un motif global est lance depuis la racine, on bloque pour eviter tout contournement.
+    // Si un motif global est lancé depuis la racine, on bloque pour éviter tout contournement.
     return DANGEROUS_PATTERN.test(rawTarget) && getCurrentDir() === "/";
 };
 
@@ -25,7 +25,7 @@ export const executeRm = (args) => {
     const filename = args[0];
 
     if (targetsRootOrSystem(filename)) {
-        return <span style={{ color: '#f00' }}>rm: suppression refusee pour proteger la racine du systeme</span>;
+        return <span style={{ color: '#f00' }}>rm: suppression refusée pour protéger la racine du système</span>;
     }
     
     if (!fileExists(filename)) {
@@ -34,7 +34,7 @@ export const executeRm = (args) => {
     
     const success = deleteFile(filename);
     if (success) {
-        return <span>{`Fichier '${filename}' supprime.`}</span>;
+        return <span>{`Fichier '${filename}' supprimé.`}</span>;
     } else {
         return <span style={{ color: '#f00' }}>{`rm: erreur lors de la suppression de '${filename}'`}</span>;
     }

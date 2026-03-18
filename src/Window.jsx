@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 import React from "react"
 
 import ding from "./assets/sounds/ding.wav";
@@ -6,7 +6,7 @@ import box_sizing from "./assets/sounds/box_sizing.wav";
 import beep_flash from "./assets/sounds/beep_flash.wav";
 import close_window from "./assets/sounds/close_window.wav";
 
-import { WindowContext } from "./Root";
+import { WindowContext } from "./contexts/WindowContext";
 
 export default function Window({
 	title = "Abstract Window",
@@ -16,7 +16,9 @@ export default function Window({
 	closeable = true,
 	draggable = true,
 	resizable = true,
-	view, id, zIndex: initialZIndex = 1
+	snapsToBounds = false,
+	view, id, zIndex: initialZIndex = 1,
+	processPid = null
 }) {
 	/**
 	 * @type {{ current: HTMLDivElement }} viewRef
@@ -44,17 +46,15 @@ export default function Window({
 	React.useEffect(() => {
 		const handleMouseMove = (e) => {
 			if (canDrag === true) {
-				const newLeft = e.clientX - relativeMouse.left;
-				const newTop = e.clientY - relativeMouse.top;
+				const rawLeft = e.clientX - relativeMouse.left;
+				const rawTop = e.clientY - relativeMouse.top;
 				
-				// Empêcher de dépasser les bords gauche et haut
-				// Autoriser le dépassement droit et bas (avec limite minimale visible)
-				const minVisibleWidth = 100; // Garder au moins 100px visibles
+				const minVisibleWidth = 100;
 				const maxLeft = window.innerWidth - minVisibleWidth;
-				const maxTop = window.innerHeight - 40; // Garder au moins la barre de titre visible
+				const maxTop = window.innerHeight - 40;
 				
-				windowRef.current.style.left = `${Math.max(0, Math.min(newLeft, maxLeft))}px`;
-				windowRef.current.style.top = `${Math.max(0, Math.min(newTop, maxTop))}px`;
+				windowRef.current.style.left = `${Math.max(0, Math.min(rawLeft, maxLeft))}px`;
+				windowRef.current.style.top = `${Math.max(0, Math.min(rawTop, maxTop))}px`;
 			}
 		};
 
@@ -161,6 +161,56 @@ export default function Window({
 			setWindows((oldWindows) => oldWindows.filter((windowData) => windowData.id !== id));
 		}, duration);
 	}
+
+	React.useEffect(() => {
+		if (processPid === null) return;
+
+		const handleProcessKill = (e) => {
+			if (e.detail?.pidsKilled?.includes(processPid)) {
+				// Ne ferme pas si on ne doit pas
+				if (closeable) {
+					closeApp();
+				}
+			}
+		};
+
+		window.addEventListener("tz-process-killed", handleProcessKill);
+		return () => window.removeEventListener("tz-process-killed", handleProcessKill);
+	}, [processPid, closeable]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	// Grille matricielle pour le redimensionnement (8x16)
+	React.useEffect(() => {
+		if (!resizable || !windowRef.current || !snapsToBounds) return;
+		
+		let isAdjusting = false;
+		const observer = new ResizeObserver((entries) => {
+			if (isAdjusting) return;
+			for (const entry of entries) {
+				const width = entry.borderBoxSize?.[0]?.inlineSize || entry.contentRect.width;
+				const height = entry.borderBoxSize?.[0]?.blockSize || entry.contentRect.height;
+				
+				const snapX = 8;
+				const snapY = 16;
+				
+				const newWidth = Math.round(width / snapX) * snapX;
+				const newHeight = Math.round(height / snapY) * snapY;
+				
+				if (width !== newWidth || height !== newHeight) {
+					isAdjusting = true;
+					windowRef.current.style.width = `${newWidth}px`;
+					windowRef.current.style.height = `${newHeight}px`;
+					
+					// Laisser le navigateur appliquer avant de réécouter
+					requestAnimationFrame(() => {
+						isAdjusting = false;
+					});
+				}
+			}
+		});
+		
+		observer.observe(windowRef.current);
+		return () => observer.disconnect();
+	}, [resizable]);
 
 	return <div className={`tz-sh-window ${resizable ? '' : 'tz-sh-window-no-resize'}`}
 		style={{

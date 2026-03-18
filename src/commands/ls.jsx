@@ -1,4 +1,4 @@
-import { listFiles } from "./fileSystem";
+import { listFiles, isExecutable } from "./fileSystem";
 
 const formatDate = (isoDate) => {
     const date = new Date(isoDate);
@@ -42,11 +42,16 @@ export const executeLs = (args) => {
     
     if (longFormat) {
         return <>
-            {files.map((file, index) => (
-                <span key={index}>
-                    {file.permissions} {file.owner.padEnd(8)} {file.group.padEnd(8)} {formatSize(file.size)} {formatDate(file.modified)} <span style={{ color: file.isDir ? '#5fd7ff' : '#fff' }}>{file.name}{file.isDir ? '/' : ''}</span>
-                </span>
-            ))}
+            {files.map((file, index) => {
+                const isExec = !file.isDir && isExecutable(file.path);
+                const isSpecialDev = !file.isDir && file.path.startsWith('/dev/');
+                const fileColor = file.isDir ? '#5fd7ff' : (isSpecialDev ? '#e5e510' : (isExec ? '#63dd58' : '#fff'));
+                return (
+                    <span key={index}>
+                        {file.permissions} {file.owner.padEnd(8)} {file.group.padEnd(8)} {formatSize(file.size)} {formatDate(file.modified)} <span style={{ color: fileColor }}>{file.name}{file.isDir ? '/' : ''}</span>
+                    </span>
+                );
+            })}
         </>;
     }
     
@@ -58,10 +63,15 @@ export const executeLs = (args) => {
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         gap: '0 16px'
     }}>
-        {displayFiles.map((file, index) => (
-            <span key={index} style={{ color: file.isDir ? '#5fd7ff' : '#fff' }}>
-                {file.name}{file.isDir ? '/' : ''}
-            </span>
-        ))}
+        {displayFiles.map((file, index) => {
+            const isExec = !file.isDir && isExecutable(file.path);
+            const isSpecialDev = !file.isDir && file.path.startsWith('/dev/');
+            const fileColor = file.isDir ? '#5fd7ff' : (isSpecialDev ? '#e5e510' : (isExec ? '#63dd58' : '#fff'));
+            return (
+                <span key={index} style={{ color: fileColor }}>
+                    {file.name}{file.isDir ? '/' : ''}
+                </span>
+            );
+        })}
     </div>;
 };

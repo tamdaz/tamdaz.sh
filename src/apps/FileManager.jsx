@@ -191,8 +191,6 @@ export default function FileManager() {
                         onClick={() => setSelectedPath(entry.path)}
                         onDoubleClick={() => handleOpen(entry)}
                     >
-                        <span>{entry.name}{entry.isDir ? "/" : ""}</span>
-                        <span>{entry.isDir ? "DIR" : "FILE"}</span>
                         <span>{asReadableSize(entry.size || 0)}</span>
                     </div>;
                 })}
