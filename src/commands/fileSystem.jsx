@@ -5,7 +5,9 @@ import { getActiveTTY, isTTYDevicePath, listRegisteredTTYs, writeToTTYPath } fro
 const FS_KEY = "tamdaz_sh_filesystem";
 const CWD_KEY = "tamdaz_sh_cwd";
 
-const SYSTEM_PROTECTED_PATHS = new Set(["/", "/proc", "/dev", "/usr", "/usr/bin", "/usr/sbin", "/bin", "/sbin"]);
+const SYSTEM_PROTECTED_PATHS = new Set([
+    "/", "/proc", "/dev", "/usr", "/usr/bin", "/usr/sbin", "/bin", "/sbin"
+]);
 
 const DEV_NODES = [
     { name: "null", isDir: false },

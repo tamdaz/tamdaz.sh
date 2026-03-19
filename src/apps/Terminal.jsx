@@ -4,7 +4,6 @@ import React from "react";
 import AboutMe from "./AboutMe";
 import Credits from "./Credits";
 import VimEditor from "./VimEditor";
-import ManPage from "./ManPage";
 import Power4Game from "./Power4Game";
 import RPSGame from "./RPSGame";
 import TicTacToeGame from "./TicTacToeGame";

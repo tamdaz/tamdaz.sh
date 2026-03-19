@@ -45,6 +45,7 @@ Exemples: chmod 755 fichier.txt
     }
     
     const success = chmod(path, permissions);
+    
     if (success) {
         return <span>Permissions modifiées: {path} → {permissions}</span>;
     } else {

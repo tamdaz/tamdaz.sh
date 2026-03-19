@@ -46,7 +46,7 @@ function WatchDisplay({ commandToRun, commandArgs, executeCommand, setStopRef })
     }, [commandToRun, commandArgs, executeCommand, setStopRef]);
 
     return (
-        <div style={{ marginBottom: '8px' }}>
+        <div style={{ marginBottom: '8px', whiteSpace: 'pre-wrap' }}>
             <div style={{ marginBottom: '8px', opacity: 0.8 }}>
                 <span>Every 1.0s: {commandToRun} {commandArgs.join(' ')}</span>
             </div>

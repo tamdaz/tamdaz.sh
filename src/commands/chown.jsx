@@ -30,8 +30,13 @@ Exemples: chown user fichier.txt
     const success = chown(path, owner, group);
     if (success) {
         const changes = [];
-        if (owner) changes.push(`propriétaire: ${owner}`);
-        if (group) changes.push(`groupe: ${group}`);
+        
+        if (owner)
+            changes.push(`propriétaire: ${owner}`);
+
+        if (group)
+            changes.push(`groupe: ${group}`);
+        
         return <span>Propriété modifiée pour '{path}': {changes.join(', ')}</span>;
     } else {
         return <span style={{ color: '#f00' }}>chown: erreur lors de la modification du propriétaire</span>;

@@ -4,10 +4,13 @@ const CONTINUOUS_DEVICES = new Set(["/dev/zero", "/dev/random"]);
 
 const randomCharBlock = (length = 64) => {
     let result = '';
+    
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+{}|:<>?-=[];,./éèêëàâäôöùûüîïçñÉÈÊËÀÂÄÔÖÙÛÜÎÏÇÑ';
+    
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    
     return result;
 };
 
