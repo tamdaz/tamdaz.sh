@@ -1,6 +1,5 @@
 /src/assets/videos/
 /node_modules
-/package-lock.json
 /.env
 /dist
 /.vscode
