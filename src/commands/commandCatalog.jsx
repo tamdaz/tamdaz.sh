@@ -58,6 +58,7 @@ export const COMMAND_CATALOG = [
     { name: "version", section: "essentiel", summary: "Affiche la version de l'OS.", synopsis: "version", examples: ["version"] },
     { name: "vim", section: "fichiers", summary: "Ouvre l'éditeur vim simplifié.", synopsis: "vim FICHIER", examples: ["vim todo.txt"] },
     { name: "watch", section: "essentiel", summary: "Exécute une commande à intervalle régulier.", synopsis: "watch COMMANDE [ARGS...]", examples: ["watch ls -l /home", "watch ps aux"] },
+    { name: "restart", section: "systeme", summary: "Redémarre le système d'exploitation.", synopsis: "restart", examples: ["restart"] },
     { name: "whoami", section: "systeme", summary: "Affiche le nom de l'utilisateur courant.", synopsis: "whoami", examples: ["whoami"] }
 ];
 

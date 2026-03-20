@@ -45,7 +45,7 @@ import {
     executeMan,
     executeChmod,
     executeChown,
-    writeFile, getCurrentDir, isSilentSinkPath,
+    writeFile, getCurrentDir, isSilentSinkPath, fileExists, readFile, isDirectory,
     ensureProcessState, killProcess, spawnProcess, spawnTransientProcess,
     registerTTY, setActiveTTY, unregisterTTY,
     executeWatch,
@@ -55,7 +55,8 @@ import {
     executeUptime,
     executeReadlink,
     executeLess,
-    executeDownload
+    executeDownload,
+    executeRestart, setupRestartListener
 } from "./../commands";
 
 const TRANSIENT_EXCLUDED_COMMANDS = new Set([
@@ -76,6 +77,7 @@ const TRANSIENT_EXCLUDED_COMMANDS = new Set([
     "portfolio",
     "procman",
     "power4",
+    "restart",
     "rps",
     "ttt",
     "version",
@@ -399,6 +401,28 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             ip: () => emitCommandOutput(executeIp()),
             kill: () => emitCommandOutput(executeKill(actualArgs)),
             less: () => {
+                // Vérifier immédiatement la validité du fichier
+                if (actualArgs.length === 0) {
+                    emitCommandOutput(<span style={{ color: '#f00' }}>less: opérande manquante</span>);
+                    return { blocking: false };
+                }
+
+                const path = actualArgs[0];
+                if (!fileExists(path)) {
+                    emitCommandOutput(<span style={{ color: '#f00' }}>{`less: ${path}: Aucun fichier ou dossier de ce type`}</span>);
+                    return { blocking: false };
+                }
+                if (isDirectory(path)) {
+                    emitCommandOutput(<span style={{ color: '#f00' }}>{`less: ${path}: est un dossier`}</span>);
+                    return { blocking: false };
+                }
+
+                const content = readFile(path);
+                if (content === null) {
+                    emitCommandOutput(<span style={{ color: '#f00' }}>{`less: ${path}: impossible de lire le fichier`}</span>);
+                    return { blocking: false };
+                }
+
                 let isDone = false;
                 const onDone = () => {
                     if (!isDone) {
@@ -612,6 +636,9 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 
                 emitCommandOutput(watchComponent);
                 return { blocking: true };
+            },
+            restart: () => {
+                return executeRestart(actualArgs);
             },
             whoami: () => emitCommandOutput(executeWhoami()),
             default: () => displayCommandNotFound()

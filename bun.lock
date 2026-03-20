@@ -6,6 +6,7 @@
       "name": "tamdaz.sh",
       "dependencies": {
         "await-sleep": "^0.0.1",
+        "crypto-js": "^4.2.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
       },
@@ -184,6 +185,8 @@
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, ""],
 
     "cross-spawn": ["cross-spawn@7.0.3", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, ""],
+
+    "crypto-js": ["crypto-js@4.2.0", "", {}, "sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q=="],
 
     "cssstyle": ["cssstyle@4.0.1", "", { "dependencies": { "rrweb-cssom": "^0.6.0" } }, "sha512-8ZYiJ3A/3OkDd093CBT/0UKDWry7ak4BdPTFP2+QEP7cmhouyq/Up709ASSj2cK02BbZiMgk7kYjZNS4QP5qrQ=="],
 

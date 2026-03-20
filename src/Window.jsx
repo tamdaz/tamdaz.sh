@@ -43,6 +43,43 @@ export default function Window({
 		bringWindowToFront(id);
 	}, [bringWindowToFront, id]);
 
+	/**
+	 * Crée un effet de fantômes de bordures
+	 * @param {number} duration - Durée totale en ms
+	 * @param {number} ghostDuration - Durée d'animation de chaque fantôme en ms
+	 */
+	const createGhostEffect = (duration, ghostDuration = 600) => {
+		const ghostInterval = setInterval(() => {
+			if (!windowRef.current) return;
+			const rect = windowRef.current.getBoundingClientRect();
+			
+			const ghost = document.createElement("div");
+			ghost.style.position = "absolute";
+			ghost.style.border = "2px solid var(--terminal-color)";
+			ghost.style.pointerEvents = "none";
+			ghost.style.left = `${rect.left}px`;
+			ghost.style.top = `${rect.top}px`;
+			ghost.style.width = `${rect.width}px`;
+			ghost.style.height = `${rect.height}px`;
+			ghost.style.zIndex = Math.max(0, initialZIndex - 1);
+			document.body.appendChild(ghost);
+
+			const animation = ghost.animate([
+				{ opacity: 0.6 },
+				{ opacity: 0 }
+			], {
+				duration: ghostDuration,
+				easing: "cubic-bezier(.12,.07,0,.99)"
+			});
+
+			animation.onfinish = () => ghost.remove();
+		}, 16);
+
+		setTimeout(() => {
+			clearInterval(ghostInterval);
+		}, duration * 0.75);
+	};
+
 	React.useEffect(() => {
 		const handleMouseMove = (e) => {
 			if (canDrag === true) {
@@ -88,37 +125,8 @@ export default function Window({
 			easing: "cubic-bezier(0,.71,.19,1)"
 		});
 
-		// Pose longue : créer des fantômes de bordures pour suivre le mouvement de la fenêtre
-		const ghostInterval = setInterval(() => {
-			if (!windowRef.current) return;
-			const rect = windowRef.current.getBoundingClientRect();
-			
-			const ghost = document.createElement("div");
-			ghost.style.position = "absolute";
-			ghost.style.border = "2px solid var(--terminal-color)";
-			ghost.style.pointerEvents = "none";
-			ghost.style.left = `${rect.left}px`;
-			ghost.style.top = `${rect.top}px`;
-			ghost.style.width = `${rect.width}px`;
-			ghost.style.height = `${rect.height}px`;
-			ghost.style.zIndex = Math.max(0, initialZIndex - 1);
-			document.body.appendChild(ghost);
-
-			const animation = ghost.animate([
-				{ opacity: 0.6 },
-				{ opacity: 0 }
-			], {
-				duration: 600,
-				easing: "cubic-bezier(.12,.07,0,.99)"
-			});
-
-			animation.onfinish = () => ghost.remove();
-		}, 16); // Générer une bordure toutes les 30ms pendant l'animation principale
-
-		// On arrête l'effet fantôme de la pose longue vers 75% du mouvement initial (quand le mouvement ralentit)
-		setTimeout(() => {
-			clearInterval(ghostInterval);
-		}, 300); // 75% de 300ms
+		// Effet fantôme lors de l'ouverture
+		createGhostEffect(300, 600);
 
 		// Déclencher les beeps et clignotements une fois le mouvement initial de 300ms complètement fini
 		setTimeout(() => {
@@ -182,6 +190,9 @@ export default function Window({
 		windowRef.current.style.minWidth = "0px";
 		windowRef.current.style.minHeight = "0px";
 
+		// Effet fantôme lors de la fermeture
+		createGhostEffect(duration, 400);
+
 		windowRef.current.animate([
 			{ left: fromX + "px", top: fromY + "px" },
 			{ width: 0, height: 0, left: fromX + currentWidth / 2 + "px", top: fromY + currentHeight / 2 + "px " }
@@ -211,6 +222,52 @@ export default function Window({
 		window.addEventListener("tz-process-killed", handleProcessKill);
 		return () => window.removeEventListener("tz-process-killed", handleProcessKill);
 	}, [processPid, closeable]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	React.useEffect(() => {
+		const handleCloseAllWindows = (e) => {
+			// Fermer cette fenêtre de force, même le terminal principal
+			const duration = 250;
+
+			if (!windowRef.current) return;
+
+			const bounds = windowRef.current.getBoundingClientRect();
+			const [fromX, fromY, currentWidth, currentHeight] = [
+				windowRef.current.getBoundingClientRect().left,
+				windowRef.current.getBoundingClientRect().top,
+				bounds.width,
+				bounds.height
+			];
+
+			try {
+				new Audio(close_window).play();
+			} catch (e) { }
+
+			headerRef.current.style.opacity = 0;
+			viewRef.current.style.opacity = 0;
+
+			windowRef.current.style.minWidth = "0px";
+			windowRef.current.style.minHeight = "0px";
+
+			// Effet fantôme lors de la fermeture
+			createGhostEffect(duration, 400);
+
+			windowRef.current.animate([
+				{ left: fromX + "px", top: fromY + "px" },
+				{ width: 0, height: 0, left: fromX + currentWidth / 2 + "px", top: fromY + currentHeight / 2 + "px " }
+			], {
+				duration: duration,
+				easing: "linear",
+				fill: "forwards"
+			});
+
+			setTimeout(() => {
+				setWindows((oldWindows) => oldWindows.filter((windowData) => windowData.id !== id));
+			}, duration);
+		};
+
+		window.addEventListener("tz-close-all-windows", handleCloseAllWindows);
+		return () => window.removeEventListener("tz-close-all-windows", handleCloseAllWindows);
+	}, [id, setWindows, createGhostEffect]);
 
 	// Grille matricielle pour le redimensionnement (8x16)
 	React.useEffect(() => {

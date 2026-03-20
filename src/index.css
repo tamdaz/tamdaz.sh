@@ -47,6 +47,14 @@ body {
     }
 }
 
+@keyframes animation-shutdown {
+    from {
+        background-color: var(--terminal-bg-color);
+    } to {
+        background-color: #000;
+    }
+}
+
 button, input, select, pre {
     font-family: var(--terminal-font, Terminus, monospace);
     font-size: 16px;

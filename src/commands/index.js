@@ -34,6 +34,7 @@ export { executeUptime } from "./uptime";
 // Process Management
 export { executeKill } from "./kill";
 export { executeWatch } from "./watch";
+export { executeRestart, setupRestartListener } from "./restart";
 
 // File Content
 export { executeHashsum } from "./hashsum";
@@ -57,6 +58,8 @@ export {
     getCurrentDir, 
     isSilentSinkPath,
     readFile,
+    fileExists,
+    listFiles,
     resolvePath,
     isExecutable,
     getFileInfo,

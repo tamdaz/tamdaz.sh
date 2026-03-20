@@ -40,6 +40,7 @@ export default function ProcessManager() {
     const [snapshot, setSnapshot] = React.useState(() => getTopSnapshot());
     const [selectedPid, setSelectedPid] = React.useState(null);
     const [status, setStatus] = React.useState("Prêt");
+    const [displayMode, setDisplayMode] = React.useState("tree");
     const tree = React.useMemo(() => buildProcessTree(snapshot.processes), [snapshot.processes]);
 
     const refresh = React.useCallback(() => {
@@ -78,26 +79,32 @@ export default function ProcessManager() {
         <div className="tz-sh-toolbar">
             <button onClick={refresh}>Rafraîchir</button>
             <button onClick={killSelected}>Terminer processus</button>
+            <span style={{ flex: 1 }}></span>
+            <button onClick={() => setDisplayMode(displayMode === "tree" ? "list" : "tree")}>
+                {displayMode === "tree" ? "Liste" : "Arborescence"}
+            </button>
         </div>
 
-        <div className="tz-sh-split" style={{ flex: 1 }}>
-            <div className="tz-sh-box tz-sh-tree-box">
-                {tree.map(({ process, depth }) => {
-                    const selected = process.pid === selectedPid;
+        <div className="tz-sh-box" style={{ flex: 1 }}>
+            {displayMode === "tree" && (
+                <div className="tz-sh-tree-box">
+                    {tree.map(({ process, depth }) => {
+                        const selected = process.pid === selectedPid;
 
-                    return <div
-                        key={`tree-${process.pid}`}
-                        className={`tz-sh-tree-node ${selected ? "selected" : ""}`}
-                        style={{ paddingLeft: `${8 + depth * 18}px` }}
-                        onClick={() => setSelectedPid(process.pid)}
-                    >
-                        <span>{process.pid.toString().padStart(4, " ")} {process.name}</span>
-                        <span>{process.s} {process.time}</span>
-                    </div>;
-                })}
-            </div>
+                        return <div
+                            key={`tree-${process.pid}`}
+                            className={`tz-sh-tree-node ${selected ? "selected" : ""}`}
+                            style={{ paddingLeft: `${8 + depth * 18}px` }}
+                            onClick={() => setSelectedPid(process.pid)}
+                        >
+                            <span>{process.pid.toString().padStart(4, " ")} {process.name}</span>
+                            <span>{process.s} {process.time}</span>
+                        </div>;
+                    })}
+                </div>
+            )}
 
-            <div className="tz-sh-box">
+            {displayMode === "list" && (
                 <table className="tz-sh-table">
                     <thead>
                         <tr>
@@ -133,7 +140,7 @@ export default function ProcessManager() {
                         })}
                     </tbody>
                 </table>
-            </div>
+            )}
         </div>
 
         <div className="tz-sh-status">{status}</div>
