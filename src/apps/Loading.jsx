@@ -1,7 +1,9 @@
 import React from "react"
 
 import boot from "./../assets/sounds/boot.wav";
-import background_music from "./../assets/sounds/background-music-2.wav";
+import bgMusic1 from "./../assets/sounds/background-music.wav";
+import bgMusic2 from "./../assets/sounds/background-music-2.wav";
+import bgMusic3 from "./../assets/sounds/music-background-3.wav";
 
 export default function Loading() {
     /** @type {{ current: HTMLSpanElement }} loadingRef */
@@ -59,9 +61,17 @@ export default function Loading() {
             }, 1500 + speed * progressBarWidth + 2000));
 
             timeouts.push(setTimeout(() => {
-                const music = new Audio(background_music);
-                music.loop = true;
-                music.play();
+                const playlist = [bgMusic2, bgMusic3, bgMusic1];
+                let currentTrack = 0;
+                let music = new Audio(playlist[currentTrack]);
+                
+                music.addEventListener('ended', function() {
+                    currentTrack = (currentTrack + 1) % playlist.length;
+                    music.src = playlist[currentTrack];
+                    music.play();
+                });
+                
+                music.play().catch(e => console.warn("L'autoplay a été bloqué.", e));
             }, 1500 + speed * progressBarWidth + 5000));
         }
 

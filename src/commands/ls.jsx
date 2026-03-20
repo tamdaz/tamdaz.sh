@@ -14,22 +14,6 @@ const formatSize = (size) => {
     return size.toString().padStart(8, ' ');
 };
 
-const buildColumnMajorOrder = (files, columns) => {
-    const rows = Math.ceil(files.length / columns);
-    const ordered = [];
-
-    for (let row = 0; row < rows; row += 1) {
-        for (let col = 0; col < columns; col += 1) {
-            const index = col * rows + row;
-            if (index < files.length) {
-                ordered.push(files[index]);
-            }
-        }
-    }
-
-    return ordered;
-};
-
 export const executeLs = (args) => {
     // Filtrer les options et récupérer le chemin
     const path = args.find(arg => !arg.startsWith('-')) || null;
@@ -45,31 +29,35 @@ export const executeLs = (args) => {
             {files.map((file, index) => {
                 const isExec = !file.isDir && isExecutable(file.path);
                 const isSpecialDev = !file.isDir && file.path.startsWith('/dev/');
-                const fileColor = file.isDir ? '#5fd7ff' : (isSpecialDev ? '#e5e510' : (isExec ? '#63dd58' : '#fff'));
+                const fileColor = file.isSymlink ? '#5fd7ff' : (file.isDir ? '#3b8eea' : (isSpecialDev ? '#e5e510' : (isExec ? '#63dd58' : '#fff')));
+                const displayName = file.isSymlink ? `${file.name} -> ${file.target}` : `${file.name}${file.isDir ? '/' : ''}`;
                 return (
                     <span key={index}>
-                        {file.permissions} {file.owner.padEnd(8)} {file.group.padEnd(8)} {formatSize(file.size)} {formatDate(file.modified)} <span style={{ color: fileColor }}>{file.name}{file.isDir ? '/' : ''}</span>
+                        {file.permissions} {file.owner.padEnd(8)} {file.group.padEnd(8)} {formatSize(file.size)} {formatDate(file.modified)} <span style={{ color: fileColor }}>{displayName}</span>
                     </span>
                 );
             })}
         </>;
     }
     
-    const columns = Math.min(9, Math.max(1, Math.floor(window.innerWidth / 180)));
-    const displayFiles = buildColumnMajorOrder(files, columns);
+    // Coreutils style: Adjust column width based on max filename length
+    const maxNameLength = files.reduce((max, file) => Math.max(max, file.name.length + (file.isDir ? 1 : 0)), 0);
+    // 1ch roughly corresponds to character width. We give horizontal padding of 2ch.
+    const columnWidthCh = maxNameLength + 2;
 
     return <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(auto-fill, minmax(${columnWidthCh}ch, 1fr))`,
         gap: '0 16px'
     }}>
-        {displayFiles.map((file, index) => {
+        {files.map((file, index) => {
             const isExec = !file.isDir && isExecutable(file.path);
             const isSpecialDev = !file.isDir && file.path.startsWith('/dev/');
-            const fileColor = file.isDir ? '#5fd7ff' : (isSpecialDev ? '#e5e510' : (isExec ? '#63dd58' : '#fff'));
+            const fileColor = file.isSymlink ? '#5fd7ff' : (file.isDir ? '#3b8eea' : (isSpecialDev ? '#e5e510' : (isExec ? '#63dd58' : '#fff')));
+            const displayName = `${file.name}${file.isDir ? '/' : ''}`;
             return (
-                <span key={index} style={{ color: fileColor }}>
-                    {file.name}{file.isDir ? '/' : ''}
+                <span key={index} style={{ color: fileColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {displayName}
                 </span>
             );
         })}

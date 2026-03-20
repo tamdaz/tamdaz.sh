@@ -215,10 +215,14 @@ export const getFileSystem = () => {
     let needsSave = false;
 
     // Réinitialise les répertoires virtuels et temporaires au démarrage
-    for (const key of Object.keys(existing)) {
-        if (key.match(/^\/(tmp|dev|proc)(\/|$)/)) {
-            delete existing[key];
-            needsSave = true;
+    // Utilise une variable de session pour ne nettoyer /tmp qu'au chargement de l'application
+    if (!window.__fs_initial_clean_done) {
+        window.__fs_initial_clean_done = true;
+        for (const key of Object.keys(existing)) {
+            if (key.match(/^\/(dev|proc)(\/|$)/) || key.startsWith("/tmp/")) {
+                delete existing[key];
+                needsSave = true;
+            }
         }
     }
 
@@ -386,13 +390,16 @@ export const getFileInfo = (path) => {
     if (!file) return null;
 
     const isDir = isDirectoryEntry(file);
-    const size = isDir ? 4096 : (file._content || "").length;
+    const isSymlink = Boolean(file._isSymlink);
+    const size = isDir ? 4096 : (isSymlink ? file._target.length : (file._content || "").length);
 
     return {
         path: fullPath,
         name: fullPath.split("/").pop() || "/",
         isDir,
-        permissions: file._permissions || (isDir ? "drwxr-xr-x" : "-rw-r--r--"),
+        isSymlink,
+        target: file._target,
+        permissions: file._permissions || (isDir ? "drwxr-xr-x" : (isSymlink ? "lrwxrwxrwx" : "-rw-r--r--")),
         owner: file._owner || "user",
         group: file._group || "user",
         modified: file._modified || asIso(),
@@ -446,16 +453,19 @@ export const listFiles = (targetPath = null) => {
         const name = path.split("/").pop();
         const file = fs[path];
         const isDir = isDirectoryEntry(file);
+        const isSymlink = Boolean(file._isSymlink);
 
         files.push({
             name,
             isDir,
+            isSymlink,
+            target: file._target,
             path,
-            permissions: file._permissions || (isDir ? "drwxr-xr-x" : "-rw-r--r--"),
+            permissions: file._permissions || (isDir ? "drwxr-xr-x" : (isSymlink ? "lrwxrwxrwx" : "-rw-r--r--")),
             owner: file._owner || "user",
             group: file._group || "user",
             modified: file._modified || asIso(),
-            size: isDir ? 4096 : (file._content || "").length
+            size: isDir ? 4096 : (isSymlink ? file._target.length : (file._content || "").length)
         });
     }
 
@@ -618,6 +628,27 @@ export const createDirectory = (path) => {
     fs[fullPath] = {
         _isDir: true,
         _permissions: "drwxr-xr-x",
+        _owner: "user",
+        _group: "user",
+        _modified: asIso()
+    };
+
+    saveFileSystem(fs);
+    return true;
+};
+
+export const createSymlink = (target, linkName) => {
+    const fs = getFileSystem();
+    const fullLinkPath = resolvePath(linkName);
+
+    if (fs[fullLinkPath] || isVirtualPath(fullLinkPath)) {
+        return false;
+    }
+
+    fs[fullLinkPath] = {
+        _isSymlink: true,
+        _target: target,
+        _permissions: "lrwxrwxrwx",
         _owner: "user",
         _group: "user",
         _modified: asIso()

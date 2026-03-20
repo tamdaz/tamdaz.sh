@@ -1,4 +1,3 @@
- 
 import React from "react"
 
 import ding from "./assets/sounds/ding.wav";
@@ -39,6 +38,7 @@ export default function Window({
 
 	const [canDrag, setDrag] = React.useState(false);
 	const [relativeMouse, setRelativeMouse] = React.useState({});
+
 	const bringToFront = React.useCallback(() => {
 		bringWindowToFront(id);
 	}, [bringWindowToFront, id]);
@@ -48,11 +48,11 @@ export default function Window({
 			if (canDrag === true) {
 				const rawLeft = e.clientX - relativeMouse.left;
 				const rawTop = e.clientY - relativeMouse.top;
-				
+
 				const minVisibleWidth = 100;
 				const maxLeft = window.innerWidth - minVisibleWidth;
 				const maxTop = window.innerHeight - 40;
-				
+
 				windowRef.current.style.left = `${Math.max(0, Math.min(rawLeft, maxLeft))}px`;
 				windowRef.current.style.top = `${Math.max(0, Math.min(rawTop, maxTop))}px`;
 			}
@@ -88,7 +88,41 @@ export default function Window({
 			easing: "cubic-bezier(0,.71,.19,1)"
 		});
 
+		// Pose longue : créer des fantômes de bordures pour suivre le mouvement de la fenêtre
+		const ghostInterval = setInterval(() => {
+			if (!windowRef.current) return;
+			const rect = windowRef.current.getBoundingClientRect();
+			
+			const ghost = document.createElement("div");
+			ghost.style.position = "absolute";
+			ghost.style.border = "2px solid var(--terminal-color)";
+			ghost.style.pointerEvents = "none";
+			ghost.style.left = `${rect.left}px`;
+			ghost.style.top = `${rect.top}px`;
+			ghost.style.width = `${rect.width}px`;
+			ghost.style.height = `${rect.height}px`;
+			ghost.style.zIndex = Math.max(0, initialZIndex - 1);
+			document.body.appendChild(ghost);
+
+			const animation = ghost.animate([
+				{ opacity: 0.6 },
+				{ opacity: 0 }
+			], {
+				duration: 600,
+				easing: "cubic-bezier(.12,.07,0,.99)"
+			});
+
+			animation.onfinish = () => ghost.remove();
+		}, 16); // Générer une bordure toutes les 30ms pendant l'animation principale
+
+		// On arrête l'effet fantôme de la pose longue vers 75% du mouvement initial (quand le mouvement ralentit)
 		setTimeout(() => {
+			clearInterval(ghostInterval);
+		}, 300); // 75% de 300ms
+
+		// Déclencher les beeps et clignotements une fois le mouvement initial de 300ms complètement fini
+		setTimeout(() => {
+			// Jouer 4 beeps et faire clignoter la fenêtre avant de finaliser le chargement
 			const beeps = setInterval(() => {
 				new Audio(beep_flash).play();
 			}, 1000 / 4);
@@ -103,15 +137,15 @@ export default function Window({
 				easing: "steps(6)"
 			});
 
-			setTimeout(() => clearInterval(beeps), 1000);
-		}, 250);
+			setTimeout(() => {
+				clearInterval(beeps);
+				
+				if (headerRef.current) headerRef.current.style.opacity = 1;
+				if (viewRef.current) viewRef.current.style.opacity = 1;
 
-		setTimeout(() => {
-			if (headerRef.current) headerRef.current.style.opacity = 1;
-			if (viewRef.current) viewRef.current.style.opacity = 1;
-			
-			new Audio(ding).play();
-		}, 1250);
+				new Audio(ding).play();
+			}, 1000);
+		}, 300);
 	}, [initialWidth, initialHeight, initialX, initialY]);
 
 	/**
@@ -150,13 +184,13 @@ export default function Window({
 
 		windowRef.current.animate([
 			{ left: fromX + "px", top: fromY + "px" },
-			{ width: 0, height: 0, left: fromX + currentWidth / 2 + "px", top: fromY + currentHeight / 2 + "px "}
+			{ width: 0, height: 0, left: fromX + currentWidth / 2 + "px", top: fromY + currentHeight / 2 + "px " }
 		], {
 			duration: duration,
 			easing: "linear",
 			fill: "forwards"
 		});
-		
+
 		setTimeout(() => {
 			setWindows((oldWindows) => oldWindows.filter((windowData) => windowData.id !== id));
 		}, duration);
@@ -181,36 +215,63 @@ export default function Window({
 	// Grille matricielle pour le redimensionnement (8x16)
 	React.useEffect(() => {
 		if (!resizable || !windowRef.current || !snapsToBounds) return;
-		
-		let isAdjusting = false;
-		const observer = new ResizeObserver((entries) => {
-			if (isAdjusting) return;
-			for (const entry of entries) {
-				const width = entry.borderBoxSize?.[0]?.inlineSize || entry.contentRect.width;
-				const height = entry.borderBoxSize?.[0]?.blockSize || entry.contentRect.height;
+
+		const handlePointerDown = (e) => {
+			// Vérifier si c'est sur le coin inférieur droit (zone de resize)
+			if (e.target !== windowRef.current) return;
+			
+			const rect = windowRef.current.getBoundingClientRect();
+			const isResizeZone = (
+				e.clientX > rect.right - 16 &&
+				e.clientY > rect.bottom - 16
+			);
+			
+			if (!isResizeZone) return;
+			
+			e.preventDefault();
+			let startX = e.clientX;
+			let startY = e.clientY;
+			let startWidth = rect.width;
+			let startHeight = rect.height;
+
+			const snapX = 8;
+			const snapY = 16;
+
+			const handleMove = (moveEvent) => {
+				const deltaX = moveEvent.clientX - startX;
+				const deltaY = moveEvent.clientY - startY;
 				
-				const snapX = 8;
-				const snapY = 16;
+				let newWidth = startWidth + deltaX;
+				let newHeight = startHeight + deltaY;
 				
-				const newWidth = Math.round(width / snapX) * snapX;
-				const newHeight = Math.round(height / snapY) * snapY;
+				// Appliquer le snapping
+				newWidth = Math.round(newWidth / snapX) * snapX;
+				newHeight = Math.round(newHeight / snapY) * snapY;
 				
-				if (width !== newWidth || height !== newHeight) {
-					isAdjusting = true;
-					windowRef.current.style.width = `${newWidth}px`;
-					windowRef.current.style.height = `${newHeight}px`;
-					
-					// Laisser le navigateur appliquer avant de réécouter
-					requestAnimationFrame(() => {
-						isAdjusting = false;
-					});
-				}
+				// Respecter les limites min
+				newWidth = Math.max(minWidth, newWidth);
+				newHeight = Math.max(minHeight, newHeight);
+				
+				windowRef.current.style.width = `${newWidth}px`;
+				windowRef.current.style.height = `${newHeight}px`;
+			};
+
+			const handleUp = () => {
+				document.removeEventListener('pointermove', handleMove);
+				document.removeEventListener('pointerup', handleUp);
+			};
+
+			document.addEventListener('pointermove', handleMove);
+			document.addEventListener('pointerup', handleUp);
+		};
+
+		windowRef.current.addEventListener('pointerdown', handlePointerDown);
+		return () => {
+			if (windowRef.current) {
+				windowRef.current.removeEventListener('pointerdown', handlePointerDown);
 			}
-		});
-		
-		observer.observe(windowRef.current);
-		return () => observer.disconnect();
-	}, [resizable]);
+		};
+	}, [resizable, minWidth, minHeight]);
 
 	return <div className={`tz-sh-window ${resizable ? '' : 'tz-sh-window-no-resize'}`}
 		style={{
@@ -229,10 +290,10 @@ export default function Window({
 			className="tz-sh-terminal-header">
 			<span>{title}</span>
 			<span style={{ flex: 1 }}></span>
-			{ closeable && <span onClick={() => closeApp(id)}>&#215;</span>}
+			{closeable && <span onClick={() => closeApp(id)}>&#215;</span>}
 		</div>
 		<div ref={viewRef} className="tz-sh-view">
-			{ view }
+			{view}
 		</div>
 	</div>
 }

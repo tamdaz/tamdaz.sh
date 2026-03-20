@@ -1,4 +1,4 @@
-import { readFile, resolvePath, isExecutable, getFileInfo } from "./fileSystem";
+import { readFile, resolvePath, isExecutable, getFileInfo, isDirectory } from "./fileSystem";
 
 const CONTINUOUS_DEVICES = new Set(["/dev/zero", "/dev/random"]);
 
@@ -38,28 +38,35 @@ export const executeCat = (args) => {
         return <span style={{ color: '#f00' }}>cat: argument manquant</span>;
     }
     
-    const filename = args[0];
-    const fullPath = resolvePath(filename);
-    const content = readFile(filename);
-    
-    if (content === null) {
-        return <span style={{ color: '#f00' }}>cat: {filename}: Aucun fichier ou dossier de ce type</span>;
-    }
-
-    // Empêcher la lecture des fichiers binaires exécutables (programmes compilés)
-    const isBinary = fullPath.startsWith('/bin/') || 
-                     fullPath.startsWith('/sbin/') ||
-                     fullPath.startsWith('/usr/bin/') ||
-                     fullPath.startsWith('/usr/sbin/');
-    
-    if (isBinary && isExecutable(fullPath)) {
-        return <span style={{ color: '#f00' }}>cat: {filename}: Ne peut pas lire un fichier exécutable</span>;
-    }
-    
-    const lines = content.split('\n');
     return <>
-        {lines.map((line, index) => (
-            <span key={index}>{line}</span>
-        ))}
+        {args.filter(arg => !arg.startsWith('-')).map((filename, fileIndex) => {
+            const fullPath = resolvePath(filename);
+            
+            // Vérifier si c'est un dossier
+            if (isDirectory(filename)) {
+                return <span key={fileIndex} style={{ color: '#f00', display: 'block' }}>cat: {filename}: Est un dossier</span>;
+            }
+            
+            const content = readFile(filename);
+            
+            if (content === null) {
+                return <span key={fileIndex} style={{ color: '#f00', display: 'block' }}>cat: {filename}: Aucun fichier ou dossier de ce type</span>;
+            }
+
+            // Empêcher la lecture des fichiers binaires exécutables (programmes compilés)
+            const isBinary = fullPath.startsWith('/bin/') || 
+                             fullPath.startsWith('/sbin/') ||
+                             fullPath.startsWith('/usr/bin/') ||
+                             fullPath.startsWith('/usr/sbin/');
+            
+            if (isBinary && isExecutable(fullPath)) {
+                return <span key={fileIndex} style={{ color: '#f00', display: 'block' }}>cat: {filename}: Ne peut pas lire un fichier exécutable</span>;
+            }
+            
+            const lines = content.split('\n');
+            return lines.map((line, index) => (
+                <span key={`${fileIndex}-${index}`} style={{ display: 'block' }}>{line}</span>
+            ));
+        })}
     </>;
 };

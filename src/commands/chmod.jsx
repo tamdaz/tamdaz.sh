@@ -27,28 +27,32 @@ const parsePermissions = (mode) => {
 export const executeChmod = (args) => {
     if (args.length < 2) {
         return <span style={{ color: '#f00' }}>chmod: arguments manquants
-Usage: chmod MODE FICHIER
+Usage: chmod MODE FICHIER [FICHIER...]
 Exemples: chmod 755 fichier.txt
           chmod -rw-r--r-- fichier.txt</span>;
     }
     
     const mode = args[0];
-    const path = args[1];
-    
-    if (!exists(path)) {
-        return <span style={{ color: '#f00' }}>chmod: impossible d'accéder à '{path}': Aucun fichier ou dossier de ce type</span>;
-    }
+    const targets = args.slice(1);
     
     const permissions = parsePermissions(mode);
     if (!permissions) {
         return <span style={{ color: '#f00' }}>chmod: mode '{mode}' invalide</span>;
     }
     
-    const success = chmod(path, permissions);
-    
-    if (success) {
-        return <span>Permissions modifiées: {path} → {permissions}</span>;
-    } else {
-        return <span style={{ color: '#f00' }}>chmod: erreur lors de la modification des permissions</span>;
-    }
+    return <>
+        {targets.map((path, index) => {
+            if (!exists(path)) {
+                return <span key={index} style={{ color: '#f00', display: 'block' }}>chmod: impossible d'accéder à '{path}': Aucun fichier ou dossier de ce type</span>;
+            }
+            
+            const success = chmod(path, permissions);
+            
+            if (!success) {
+                return <span key={index} style={{ color: '#f00', display: 'block' }}>chmod: erreur lors de la modification des permissions pour '{path}'</span>;
+            }
+            
+            return null;
+        })}
+    </>;
 };

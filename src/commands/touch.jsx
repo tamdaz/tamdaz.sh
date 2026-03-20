@@ -5,12 +5,14 @@ export const executeTouch = (args) => {
         return <span style={{ color: '#f00' }}>touch: argument manquant</span>;
     }
     
-    const filename = args[0];
-    
-    if (fileExists(filename)) {
-        return <span>touch: fichier '{filename}' existe déjà</span>;
-    }
-    
-    writeFile(filename, '');
-    return <span>Fichier '{filename}' créé.</span>;
+    return <>
+        {args.filter(arg => !arg.startsWith('-')).map((filename, index) => {
+            if (fileExists(filename)) {
+                return null; // like real touch, just updates timestamp usually, we can ignore
+            }
+            
+            writeFile(filename, '');
+            return null; // no output for touch on success
+        })}
+    </>;
 };

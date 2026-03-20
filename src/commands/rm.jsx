@@ -22,20 +22,23 @@ export const executeRm = (args) => {
         return <span style={{ color: '#f00' }}>rm: argument manquant</span>;
     }
     
-    const filename = args[0];
-
-    if (targetsRootOrSystem(filename)) {
-        return <span style={{ color: '#f00' }}>rm: suppression refusée pour protéger la racine du système</span>;
-    }
-    
-    if (!fileExists(filename)) {
-        return <span style={{ color: '#f00' }}>{`rm: impossible de supprimer '${filename}': Aucun fichier ou dossier de ce type`}</span>;
-    }
-    
-    const success = deleteFile(filename);
-    if (success) {
-        return <span>{`Fichier '${filename}' supprimé.`}</span>;
-    } else {
-        return <span style={{ color: '#f00' }}>{`rm: erreur lors de la suppression de '${filename}'`}</span>;
-    }
+    return <>
+        {args.filter(arg => !arg.startsWith('-')).map((filename, index) => {
+            if (targetsRootOrSystem(filename)) {
+                return <span key={index} style={{ color: '#f00' }}>rm: suppression refusée pour protéger la racine du système</span>;
+            }
+            
+            if (!fileExists(filename)) {
+                return <span key={index} style={{ color: '#f00' }}>{`rm: impossible de supprimer '${filename}': Aucun fichier ou dossier de ce type`}</span>;
+            }
+            
+            const success = deleteFile(filename);
+            if (success) {
+                // Not standard to print out success for rm unless -v but we keep it or just null
+                return null;
+            } else {
+                return <span key={index} style={{ color: '#f00' }}>{`rm: erreur lors de la suppression de '${filename}'`}</span>;
+            }
+        })}
+    </>;
 };

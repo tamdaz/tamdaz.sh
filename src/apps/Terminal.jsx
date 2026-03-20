@@ -9,41 +9,55 @@ import RPSGame from "./RPSGame";
 import TicTacToeGame from "./TicTacToeGame";
 import FileManager from "./FileManager";
 import ProcessManager from "./ProcessManager";
+import HelpViewer from "./HelpViewer";
+import Game2048 from "./Game2048";
+import SnakeGame from "./SnakeGame";
 
 import { WindowContext } from "../contexts/WindowContext";
 
 import beep_error from "./../assets/sounds/beep_error.wav";
 
-import { displayHelp } from "../commands/help";
-import { changeColor, displayHelpColor } from "../commands/color";
-import { changeBrightness } from "../commands/brightness";
-import { changeFont, displayHelpFont } from "../commands/font";
-import { executeEcho } from "../commands/echo";
-import { executeCat, isContinuousCatTarget, readContinuousCatChunk } from "../commands/cat";
-import { executeTouch } from "../commands/touch";
-import { executeRm } from "../commands/rm";
-import { executeLs } from "../commands/ls";
-import { executePwd } from "../commands/pwd";
-import { executeCd } from "../commands/cd";
-import { executeCp } from "../commands/cp";
-import { executeMv } from "../commands/mv";
-import { executeMkdir } from "../commands/mkdir";
-import { executeRmdir } from "../commands/rmdir";
-import { executeVim } from "../commands/vim";
-import { executePing } from "../commands/ping";
-import { executeIp } from "../commands/ip";
-import { executeFastfetch } from "../commands/fastfetch";
-import { executeTop } from "../commands/top";
-import { executePs } from "../commands/ps";
-import { executeKill } from "../commands/kill";
-import { executeHashsum } from "../commands/hashsum";
-import { executeMan } from "../commands/man";
-import { executeChmod } from "../commands/chmod";
-import { executeChown } from "../commands/chown";
-import { writeFile, getCurrentDir, isSilentSinkPath } from "../commands/fileSystem";
-import { ensureProcessState, killProcess, spawnProcess, spawnTransientProcess } from "../commands/processSystem";
-import { registerTTY, setActiveTTY, unregisterTTY } from "../commands/ttySystem";
-import { executeWatch } from "../commands/watch";
+import {
+    changeColor, displayHelpColor,
+    changeBrightness,
+    changeFont, displayHelpFont,
+    executeEcho,
+    executeCat, isContinuousCatTarget, readContinuousCatChunk,
+    executeTouch,
+    executeRm,
+    getCompletions,
+    executeLn,
+    executeLs,
+    executePwd,
+    executeCd,
+    executeCp,
+    executeMv,
+    executeMkdir,
+    executeRmdir,
+    executeVim,
+    executePing,
+    executeIp,
+    executeFastfetch,
+    executeTop,
+    executePs,
+    executeKill,
+    executeHashsum,
+    executeMan,
+    executeChmod,
+    executeChown,
+    writeFile, getCurrentDir, isSilentSinkPath,
+    ensureProcessState, killProcess, spawnProcess, spawnTransientProcess,
+    registerTTY, setActiveTTY, unregisterTTY,
+    executeWatch,
+    executeWhoami,
+    executeDate,
+    executeUname,
+    executeUptime,
+    executeReadlink,
+    executeLess,
+    executeDownload
+} from "./../commands";
+
 const TRANSIENT_EXCLUDED_COMMANDS = new Set([
     "",
     "aboutme",
@@ -102,6 +116,12 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
     const historyRef = React.useRef(history);
     const indexRef = React.useRef(0);
 
+    const [completionState, setCompletionState] = React.useState(null);
+    const completionRef = React.useRef(null);
+    React.useEffect(() => {
+        completionRef.current = completionState;
+    }, [completionState]);
+
     const { setWindows, bringWindowToFront, activeWindowId, openTerminalWindow } = React.useContext(WindowContext);
 
     const appendOutput = React.useCallback((line) => {
@@ -134,6 +154,13 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             return nextOutput;
         });
     }, []);
+
+    // Auto-scroll vers le bas lorsque le contenu du terminal change
+    React.useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+        }
+    }, [output]);
 
     const openWindow = React.useCallback((windowConfig, options = {}) => {
         const { unique = false, processName = null } = options;
@@ -318,6 +345,8 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 minHeight: 140,
                 view: <Credits />
             }, { unique: true, processName: "credits" }),
+            date: () => emitCommandOutput(executeDate()),
+            download: () => emitCommandOutput(executeDownload(actualArgs)),
             echo: () => emitCommandOutput(executeEcho(actualArgs)),
             exit: () => {
                 if (isMainTerminal) {
@@ -347,7 +376,17 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                     changeFont(actualArgs[0], setOutput);
                 }
             },
-            help: () => emitCommandOutput(displayHelp()),
+            help: () => openWindow({
+                id: "window-help",
+                title: "Aide - sh.tamdaz.fr",
+                initialX: window.innerWidth / 2 - 250,
+                initialY: window.innerHeight / 2 - 200,
+                initialWidth: 500,
+                initialHeight: 400,
+                minWidth: 400,
+                minHeight: 300,
+                view: <HelpViewer />
+            }, { unique: true, processName: "help" }),
             history: () => emitCommandOutput(<>
                 {historyRef.current.length === 0
                     ? <span style={{ color: "#888" }}>Historique vide.</span>
@@ -359,14 +398,62 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             },
             ip: () => emitCommandOutput(executeIp()),
             kill: () => emitCommandOutput(executeKill(actualArgs)),
-            less: () => appendOutput(<span style={{ color: "#f00" }}>{"Commande less supprimée. Utilisez cat ou vim."}</span>),
+            less: () => {
+                let isDone = false;
+                const onDone = () => {
+                    if (!isDone) {
+                        isDone = true;
+                        createShell();
+                    }
+                };
+
+                let lessComponent = executeLess(actualArgs, (ref) => {
+                    activeStreamRef.current = {
+                        stop: () => {
+                            if (ref && ref.stop) ref.stop();
+                            onDone();
+                        }
+                    };
+                }, onDone);
+                
+                emitCommandOutput(lessComponent);
+                return { blocking: true };
+            },
+            ln: () => emitCommandOutput(executeLn(actualArgs)),
             ls: () => emitCommandOutput(executeLs(actualArgs)),
             man: () => emitCommandOutput(executeMan(actualArgs)),
             md5sum: () => emitCommandOutput(executeHashsum("md5sum", actualArgs)),
             mkdir: () => emitCommandOutput(executeMkdir(actualArgs)),
             more: () => appendOutput(<span style={{ color: "#f00" }}>{"Commande more supprimée. Utilisez cat ou vim."}</span>),
             mv: () => emitCommandOutput(executeMv(actualArgs)),
-            ping: () => emitCommandOutput(executePing(actualArgs)),
+            ping: () => {
+                let isDone = false;
+                let pingStopper = null;
+
+                const onDone = () => {
+                    if (!isDone) {
+                        isDone = true;
+                        createShell();
+                    }
+                };
+                
+                const pingComponent = executePing(actualArgs, onDone, (ref) => {
+                    pingStopper = ref;
+                });
+                
+                // Allow Ctrl+C to interrupt ping
+                activeStreamRef.current = {
+                    stop: () => {
+                        if (pingStopper && pingStopper.stop) {
+                            pingStopper.stop();
+                        }
+                        onDone();
+                    }
+                };
+
+                emitCommandOutput(pingComponent);
+                return { blocking: true };
+            },
             portfolio: () => {
                 appendOutput(<span>Accès au site portfolio: https://tamdaz.fr.</span>);
                 setTimeout(() => window.open("https://tamdaz.fr", "_blank"), 1000);
@@ -383,6 +470,34 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 view: <ProcessManager />
             }, { unique: true, processName: "procman" }),
             ps: () => emitCommandOutput(executePs(actualArgs)),
+            "2048": () => {
+                const gameId = `window-2048-${Date.now()}`;
+                openWindow({
+                    id: gameId,
+                    title: "2048",
+                    initialX: window.innerWidth / 2 - 200,
+                    initialY: window.innerHeight / 2 - 250,
+                    initialWidth: 400,
+                    initialHeight: 500,
+                    minWidth: 350,
+                    minHeight: 450,
+                    view: <Game2048 />
+                }, { processName: "2048" });
+            },
+            snake: () => {
+                const gameId = `window-snake-${Date.now()}`;
+                openWindow({
+                    id: gameId,
+                    title: "Snake",
+                    initialX: window.innerWidth / 2 - 220,
+                    initialY: window.innerHeight / 2 - 240,
+                    initialWidth: 440,
+                    initialHeight: 480,
+                    minWidth: 400,
+                    minHeight: 450,
+                    view: <SnakeGame />
+                }, { processName: "snake" });
+            },
             power4: () => {
                 const gameId = `window-power4-${Date.now()}`;
                 openWindow({
@@ -398,6 +513,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 }, { processName: "power4" });
             },
             pwd: () => emitCommandOutput(executePwd()),
+            readlink: () => emitCommandOutput(executeReadlink(actualArgs)),
             rm: () => emitCommandOutput(executeRm(actualArgs)),
             rmdir: () => emitCommandOutput(executeRmdir(actualArgs)),
             rps: () => {
@@ -442,6 +558,8 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                     view: <TicTacToeGame />
                 }, { processName: "ttt" });
             },
+            uname: () => emitCommandOutput(executeUname(actualArgs)),
+            uptime: () => emitCommandOutput(executeUptime()),
             version: () => appendOutput(<span>&copy; tamdaz.sh version 0.0.1, tous droits réservés</span>),
             vim: () => {
                 const result = executeVim(actualArgs, setWindows);
@@ -495,6 +613,7 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
                 emitCommandOutput(watchComponent);
                 return { blocking: true };
             },
+            whoami: () => emitCommandOutput(executeWhoami()),
             default: () => displayCommandNotFound()
         };
 
@@ -509,7 +628,106 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
             }
         }
 
-        if (historyRef.current.length !== 0) {
+        if (e.key === "Tab") {
+            e.preventDefault();
+            
+            const currentText = e.target.innerText.replace("\n", "");
+            
+            if (completionRef.current) {
+                const { matches, selectedIndex, baseText } = completionRef.current;
+                
+                let nextIndex = selectedIndex;
+                if (e.shiftKey) {
+                    nextIndex = (selectedIndex - 1 + matches.length) % matches.length;
+                } else {
+                    nextIndex = (selectedIndex + 1) % matches.length;
+                }
+                
+                const selectedMatch = matches[nextIndex];
+                const newText = baseText + selectedMatch.text + (selectedMatch.suffix || "");
+                e.target.innerText = newText;
+                
+                setTimeout(() => {
+                    const selection = window.getSelection();
+                    selection.selectAllChildren(e.target);
+                    selection.collapseToEnd();
+                });
+                
+                setCompletionState({
+                    ...completionRef.current,
+                    selectedIndex: nextIndex,
+                    currentText: newText
+                });
+                return;
+            } else {
+                const { matches, baseText } = getCompletions(currentText);
+                
+                if (matches.length === 1) {
+                    const m = matches[0];
+                    const newText = baseText + m.text + (m.suffix || "");
+                    e.target.innerText = newText;
+                    setTimeout(() => {
+                        const selection = window.getSelection();
+                        selection.selectAllChildren(e.target);
+                        selection.collapseToEnd();
+                    });
+                } else if (matches.length > 1) {
+                    setCompletionState({
+                        matches,
+                        selectedIndex: -1,
+                        baseText,
+                        originalText: currentText
+                    });
+                }
+                return;
+            }
+        }
+
+        if (completionRef.current) {
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                e.preventDefault();
+                const { matches, selectedIndex, baseText } = completionRef.current;
+                const COLUMNS = 5; // Nombre de colonnes fixe pour la navigation 2D
+                
+                let nextIndex = selectedIndex;
+                if (e.key === "ArrowRight") {
+                    nextIndex = selectedIndex + 1 < matches.length ? selectedIndex + 1 : selectedIndex;
+                } else if (e.key === "ArrowLeft") {
+                    nextIndex = selectedIndex - 1 >= 0 ? selectedIndex - 1 : selectedIndex;
+                } else if (e.key === "ArrowDown") {
+                    nextIndex = selectedIndex + COLUMNS < matches.length ? selectedIndex + COLUMNS : selectedIndex;
+                } else if (e.key === "ArrowUp") {
+                    nextIndex = selectedIndex - COLUMNS >= 0 ? selectedIndex - COLUMNS : selectedIndex;
+                }
+                
+                const selectedMatch = matches[nextIndex];
+                const newText = baseText + selectedMatch.text + (selectedMatch.suffix || "");
+                e.target.innerText = newText;
+                
+                setTimeout(() => {
+                    const selection = window.getSelection();
+                    selection.selectAllChildren(e.target);
+                    selection.collapseToEnd();
+                });
+                
+                setCompletionState({
+                    ...completionRef.current,
+                    selectedIndex: nextIndex,
+                    currentText: newText
+                });
+                return;
+            }
+        }
+
+        if (completionRef.current && !["Shift", "Control", "Alt", "Meta", "Tab"].includes(e.key)) {
+            setCompletionState(null);
+            if (e.key === "Enter" && completionRef.current.selectedIndex !== -1) {
+                e.preventDefault();
+                return;
+            }
+        }
+
+        if (historyRef.current.length !== 0 && !completionRef.current) {
             if (e.key === "ArrowUp") {
                 if (indexRef.current + 1 < historyRef.current.length) {
                     indexRef.current += 1;
@@ -652,11 +870,46 @@ export default function Terminal({ windowId = "window-terminal-main", tty = "tty
         };
     }, [stopActiveStream]);
 
-    return <div ref={terminalRef} className="tz-sh-terminal" onClick={() => focusInput(true)}>
+    const renderCompletions = () => {
+        if (!completionState || !completionState.matches) return null;
+        
+        const maxMatchLength = completionState.matches.reduce((max, match) => Math.max(max, (match.displayName || match.text).length), 0);
+        const columnWidthCh = maxMatchLength + 2;
+        const COLUMNS = 5; // 5 colonnes pour la navigation 2D
+
+        return (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS}, ${columnWidthCh}ch)`, gap: '0 16px' }}>
+                {completionState.matches.map((match, index) => {
+                    const isSelected = completionState.selectedIndex === index;
+                    const fgColor = isSelected ? '#000' : (match.color || 'inherit');
+                    const bgColor = isSelected ? '#ccc' : 'transparent';
+                    
+                    return (
+                        <span key={index} style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            background: bgColor,
+                            color: fgColor,
+                        }}>
+                            {match.displayName || match.text}
+                        </span>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    return <div ref={terminalRef} className="tz-sh-terminal" onClick={(e) => {
+        e.stopPropagation();
+        bringWindowToFront(windowId);
+        focusInput(true);
+    }}>
         {output.map((singleOutput, index) => (
             <React.Fragment key={`output-id-${index}`}>
                 {singleOutput}
             </React.Fragment>
         ))}
+        {renderCompletions()}
     </div>;
 }

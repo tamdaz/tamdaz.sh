@@ -4,7 +4,7 @@ import React from "react";
  * Composant Watch qui exécute une commande répétée au sein du terminal,
  * interruptible par Ctrl+C.
  */
-function WatchDisplay({ commandToRun, commandArgs, executeCommand, setStopRef }) {
+function WatchDisplay({ commandToRun, commandArgs, executeCommand, setStopRef, intervalSeconds }) {
     const [output, setOutput] = React.useState(null);
     const intervalRef = React.useRef(null);
 
@@ -27,8 +27,8 @@ function WatchDisplay({ commandToRun, commandArgs, executeCommand, setStopRef })
         // Exécuter immédiatement
         executeAndUpdate();
 
-        // Puis répéter toutes les secondes
-        intervalRef.current = setInterval(executeAndUpdate, 1000);
+        // Puis répéter selon l'intervalle configuré
+        intervalRef.current = setInterval(executeAndUpdate, intervalSeconds * 1000);
 
         setStopRef({
             stop: () => {
@@ -43,14 +43,14 @@ function WatchDisplay({ commandToRun, commandArgs, executeCommand, setStopRef })
                 clearInterval(intervalRef.current);
             }
         };
-    }, [commandToRun, commandArgs, executeCommand, setStopRef]);
+    }, [commandToRun, commandArgs, executeCommand, setStopRef, intervalSeconds]);
 
     return (
         <div style={{ marginBottom: '8px', whiteSpace: 'pre-wrap' }}>
             <div style={{ marginBottom: '8px', opacity: 0.8 }}>
-                <span>Every 1.0s: {commandToRun} {commandArgs.join(' ')}</span>
+                <span>Every {intervalSeconds.toFixed(1)}s: {commandToRun} {commandArgs.join(' ')}</span>
             </div>
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {output === null ? (
                     <span style={{ opacity: 0.5 }}>En attente...</span>
                 ) : (
@@ -66,13 +66,30 @@ export const executeWatch = (args, executeCommand, setStopRef) => {
         return <span style={{ color: '#f00' }}>watch: veuillez fournir une commande à exécuter</span>;
     }
 
-    const commandToRun = args[0];
-    const commandArgs = args.slice(1);
+    let interval = 1.0;
+    let commandToRun = null;
+    let commandArgs = [];
+
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '-n' && i + 1 < args.length) {
+            interval = parseFloat(args[i + 1]) || 1.0;
+            i++;
+        } else if (!commandToRun) {
+            commandToRun = args[i];
+        } else {
+            commandArgs.push(args[i]);
+        }
+    }
+
+    if (!commandToRun) {
+        return <span style={{ color: '#f00' }}>watch: veuillez fournir une commande à exécuter</span>;
+    }
 
     return <WatchDisplay 
         commandToRun={commandToRun} 
         commandArgs={commandArgs} 
         executeCommand={executeCommand}
         setStopRef={setStopRef}
+        intervalSeconds={interval}
     />;
 };
