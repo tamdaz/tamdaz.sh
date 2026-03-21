@@ -136,6 +136,12 @@ export default function Root() {
 			<WindowContext.Provider value={{ windows, setWindows, maxZIndex, setMaxZIndex, activeWindowId, bringWindowToFront, openTerminalWindow }}>
 				{
 					windows.map((window) => {
+						if (window.id === "window-loading" && windows.length > 1) {
+							setTimeout(() => {
+								setWindows((oldWindows) => oldWindows.filter((windowData) => windowData.id !== "window-loading"));
+							}, 1250);
+						}
+
 						return <Window key={window.id}
 							id={window.id}
 							title={window.title}
