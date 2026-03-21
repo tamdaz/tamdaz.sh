@@ -1,0 +1,16 @@
+# Archive de user
+# Généré par tamdaz.sh
+# 2 fichiers
+
+
+============================================================
+[1/2] /home/about.txt
+============================================================
+Projet créé par tamdaz.
+Visitez https://tamdaz.fr pour en savoir plus.
+
+============================================================
+[2/2] /home/readme.txt
+============================================================
+Bienvenue sur tamdaz.sh!
+Ce terminal simule un petit OS Unix-like.

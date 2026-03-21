@@ -1,17 +1,17 @@
-import color_changed from "./../assets/sounds/color_changed.wav";
+import confirm from "./../assets/sounds/confirm.wav";
 
 /**
  * @param {number} id 
  */
 export const changeColor = (id, setOutput) => {
     const colors = [
-        { color: "#dd5858", bgColor: "#140505" }, // red
-        { color: "#dd9b58", bgColor: "#140d05" }, // orange
+        { color: "#dd5868", bgColor: "#140509" }, // ruby
+        { color: "#dd8d58", bgColor: "#140b05" }, // orange
         { color: "#dddd58", bgColor: "#141405" }, // yellow
-        { color: "#63dd58", bgColor: "#071405" }, // green
+        { color: "#58dd94", bgColor: "#05140d" }, // green
         { color: "#58dddd", bgColor: "#051414" }, // cyan
         { color: "#589bdd", bgColor: "#050d14" }, // blue
-        { color: "#5858dd", bgColor: "#050514" }, // dark blue
+        { color: "#6158dd", bgColor: "#050514" }, // dark blue
         { color: "#9b58dd", bgColor: "#0d0514" }, // purple
         { color: "#dd58dd", bgColor: "#140514" }, // pink
         { color: "#dddddd", bgColor: "#141414" }, // grey
@@ -25,7 +25,7 @@ export const changeColor = (id, setOutput) => {
     
         saveColors(colors[id].color, colors[id].bgColor);
     
-        new Audio(color_changed).play();
+        new Audio(confirm).play();
     }
 }
 

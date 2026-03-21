@@ -5,10 +5,10 @@ export const changeFont = (fontName, setOutput) => {
     if (["Spleen", "Tamzen", "Terminus", "Unifont"].includes(fontName)) {
         new Audio(applied).play();
 
-        document.body.style.fontFamily = `${fontName}, monospace`;
+        document.documentElement.style.setProperty('--terminal-font', `${fontName}, monospace`);
     } else {
         new Audio(beep_error).play();
-        
+
         const error = <span style={{ color: "#f00" }}>
             La police que vous avez demandé(e) n'existe pas, veuillez réessayer.
         </span>
@@ -16,7 +16,6 @@ export const changeFont = (fontName, setOutput) => {
         setOutput(oldOutput => [...oldOutput, error]);
     }
 }
-
 export const displayHelpFont = () => {
     return <>
         <span>&gt;&gt;&gt; AIDE DE LA COMMANDE "font" :</span>

@@ -12,7 +12,7 @@ export default function Credits() {
     };
 
     return <div style={center}>
-        <span>Ce projet a été créé par Tamda Zohir.</span>
+        <span>Ce projet a été créé par Tamda Zohir et Claude Sonnet 4.5.</span>
         <span>Toutes les contributions sont les bienvenues.</span>
     </div>
 }
